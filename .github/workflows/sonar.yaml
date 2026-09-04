@@ -1,0 +1,62 @@
+name: Sonar
+
+# Separate from the CI pipeline on purpose. The SonarScanner for .NET wraps the build
+# (begin → build → test → end), so it cannot reuse the CI jobs; and dev must be analysed
+# on push, not only on pull requests, or the reference branch has nothing to compare to.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sonar:
+    name: SonarQube Cloud scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # Sonar reads git blame to decide what counts as new code.
+          fetch-depth: 0
+
+      # The scanner is a .NET tool but runs on the JVM.
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+
+      # dotnet-sonarscanner and dotnet-coverage are pinned in dotnet-tools.json, so CI
+      # and a developer's machine run the same versions.
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      # The SonarScanner for .NET ignores sonar-project.properties entirely — every
+      # setting is passed here. Change /k: and /o: when cloning this template.
+      - name: Build, test and analyse
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet dotnet-sonarscanner begin \
+            /k:"ProjectLanternDI3P1P2_dotnet-backend-template" \
+            /o:"projectlanterndi3p1p2" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          dotnet build Combat.Presentation.slnx --no-incremental
+          # Sonar does not read Cobertura for C#; dotnet-coverage's xml format is the
+          # vscoveragexml one it expects.
+          dotnet dotnet-coverage collect "dotnet test --solution Combat.Presentation.slnx" \
+            -f xml -o coverage.xml
+          dotnet dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"

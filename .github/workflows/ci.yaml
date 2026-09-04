@@ -1,0 +1,34 @@
+name: CI
+
+# Orchestrator. It owns the triggers, the concurrency and the job graph; the three
+# called workflows own everything language-specific. Swapping .NET for another stack
+# means rewriting _lint / _test / _build and leaving this file untouched.
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+# One run per branch. Superseded pull request runs are cancelled; runs on dev and
+# main are not, so the reference branch always ends up with a finished analysis.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    uses: ./.github/workflows/_lint.yaml
+
+  test:
+    name: Test
+    uses: ./.github/workflows/_test.yaml
+
+  build:
+    name: Build
+    uses: ./.github/workflows/_build.yaml

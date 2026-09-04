@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: dotnet test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+
+      # Coverage is not collected here — the Sonar workflow collects it while wrapping
+      # its own build, and doing it twice would only slow this job down.
+      - name: Run tests
+        run: dotnet test --solution Combat.Presentation.slnx

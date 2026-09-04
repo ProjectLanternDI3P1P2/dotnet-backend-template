@@ -1,0 +1,15 @@
+# .editorconfig requires CRLF, and the CI runners are Linux: without this file they
+# would check out LF and `dotnet format --verify-no-changes` would fail on every file.
+# Text is stored as LF in the repository and checked out as CRLF everywhere.
+* text=auto eol=crlf
+
+# Anything executed by a shell must keep LF, CRLF breaks the shebang.
+*.sh text eol=lf
+.husky/pre-commit text eol=lf
+.husky/_/husky.sh text eol=lf
+Dockerfile text eol=lf
+
+# Never touched by end-of-line normalisation.
+*.png binary
+*.jpg binary
+*.ico binary

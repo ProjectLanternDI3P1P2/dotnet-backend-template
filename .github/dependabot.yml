@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One reviewable pull request instead of a dozen. Majors keep their own, because
+      # those are the ones worth reading a changelog for.
+      minor-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  # Pinned by commit SHA and slow-moving, so monthly is enough.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

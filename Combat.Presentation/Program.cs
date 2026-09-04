@@ -1,0 +1,17 @@
+using Combat.Presentation.Extensions;
+using Combat.Application;
+using Combat.Infrastructure;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.ConfigureApi();
+
+builder.Services
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationServices();
+
+var app = builder.Build();
+
+app.ConfigureStart();
+
+app.Run();

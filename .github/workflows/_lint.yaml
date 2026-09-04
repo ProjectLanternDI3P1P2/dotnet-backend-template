@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: dotnet format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # No version: the SDK is pinned in global.json, which is the single source of
+      # truth for CI and for developer machines alike.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+
+      # --severity warn, not the default: the style rules in .editorconfig are set to
+      # warning, and the default threshold would only ever catch whitespace.
+      - name: Verify formatting
+        run: dotnet format Combat.Presentation.slnx --verify-no-changes --severity warn

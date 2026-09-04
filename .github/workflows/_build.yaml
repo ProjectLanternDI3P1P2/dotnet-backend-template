@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: dotnet build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+
+      # Release, unlike the test job: a warning that only surfaces in a release build
+      # should fail here rather than at packaging time.
+      - name: Build solution
+        run: dotnet build Combat.Presentation.slnx --configuration Release

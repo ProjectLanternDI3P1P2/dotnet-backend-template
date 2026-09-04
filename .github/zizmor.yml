@@ -1,0 +1,5 @@
+# Accepted trade-offs go here, so that a new finding stands out from the ones that have
+# already been argued about. Nothing is muted today: every workflow pins its actions by
+# SHA, sets persist-credentials: false, and passes untrusted values through env rather
+# than interpolating them into a shell.
+rules: {}
