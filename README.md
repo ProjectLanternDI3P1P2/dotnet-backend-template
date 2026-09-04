@@ -109,5 +109,12 @@ from lint and unit tests.
 3. Add `SONAR_TOKEN` and `BOT_TOKEN` as secrets. `BOT_TOKEN`, not the default
    `GITHUB_TOKEN`: a pull request opened by the latter triggers no workflow, so
    the release pull request would never get a CI run.
-4. Set `dev` as the default branch and protect both `dev` and `main`.
-5. Rename the `Combat.*` projects to your service name.
+4. Set `dev` as the default branch and protect both `dev` and `main`. Required
+   checks: `Lint / dotnet format`, `Test / dotnet test`, `Build / dotnet build`,
+   `Trivy Security Scan`, `GitHub Actions audit` — and `SonarQube Cloud scan`
+   once `SONAR_TOKEN` exists, not before: a required check that can never pass
+   blocks every merge. Keep "require linear history" **off**, or the merge
+   commits this flow depends on become impossible.
+5. Enable auto-merge on the repository; the back-merge workflow uses it.
+6. Rename the `Combat.*` projects to your service name, and update `/k:` and
+   `/o:` in `.github/workflows/sonar.yaml`.
