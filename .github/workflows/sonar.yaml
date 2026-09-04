@@ -3,12 +3,15 @@ name: Sonar
 # Separate from the CI pipeline on purpose. The SonarScanner for .NET wraps the build
 # (begin → build → test → end), so it cannot reuse the CI jobs; and dev must be analysed
 # on push, not only on pull requests, or the reference branch has nothing to compare to.
+#
+# dev only, never main: the free plan analyses a single long-lived branch, and dev is the
+# one worth having (see ADR-0005). Analysing main would need a paid plan.
 
 on:
   push:
-    branches: [dev, main]
+    branches: [dev]
   pull_request:
-    branches: [dev, main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
