@@ -79,7 +79,7 @@ moves nothing.
 | Workflow | Runs on | Does |
 | --- | --- | --- |
 | `ci.yaml` | PR and push to `dev` / `main` | Calls the reusable lint, test and build workflows |
-| `sonar.yaml` | PR and push to `dev` / `main` | Builds and tests under the SonarScanner for .NET, uploads coverage |
+| `sonar.yaml` | PR and push to `dev` | Builds and tests under the SonarScanner for .NET, uploads coverage |
 | `security.yml` | PR and push to `dev` / `main` | Trivy filesystem scan, zizmor workflow audit |
 | `release-please.yaml` | push to `main` | Maintains the release pull request |
 | `back-merge.yaml` | after a release | Opens and merges `main` → `dev` |
@@ -103,9 +103,14 @@ from lint and unit tests.
 ## Setting up a new repository from this template
 
 1. Create the repository **public** (SonarQube Cloud's free tier requires it).
-2. Import the organisation into SonarQube Cloud, create the project, and set the
-   main branch to `dev`. New-code definition: 30 days on `dev`, previous version
-   on `main`.
+2. Import the organisation into SonarQube Cloud and create the project, then:
+   - **Branches**: delete the `dev` entry SonarQube Cloud created on its own,
+     then rename the main branch from `main` to `dev` — the rename is refused
+     while a branch of that name already exists. The free plan covers one
+     long-lived branch, and `dev` is the one that matters (ADR-0005).
+   - **Administration → Analysis method**: switch **Automatic Analysis off**.
+     Left on, it competes with the scanner and every CI analysis fails.
+   - **Administration → New code**: number of days, 30.
 3. Add `SONAR_TOKEN` and `BOT_TOKEN` as secrets. `BOT_TOKEN`, not the default
    `GITHUB_TOKEN`: a pull request opened by the latter triggers no workflow, so
    the release pull request would never get a CI run.
