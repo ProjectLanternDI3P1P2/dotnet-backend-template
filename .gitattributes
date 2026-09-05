@@ -1,13 +1,12 @@
-# .editorconfig requires CRLF, and the CI runners are Linux: without this file they
-# would check out LF and `dotnet format --verify-no-changes` would fail on every file.
-# Text is stored as LF in the repository and checked out as CRLF everywhere.
-* text=auto eol=crlf
-
-# Anything executed by a shell must keep LF, CRLF breaks the shebang.
-*.sh text eol=lf
-.husky/pre-commit text eol=lf
-.husky/_/husky.sh text eol=lf
-Dockerfile text eol=lf
+# LF everywhere, checked out as LF on every platform.
+#
+# Not CRLF, even though this is a Windows-first .NET repository: tools that commit
+# through the GitHub API — Dependabot first among them — write back the end-of-line they
+# checked out. With eol=crlf they returned CRLF blobs against a repository storing LF,
+# turning every dependency bump into a whole-file rewrite and a guaranteed conflict.
+#
+# .editorconfig must agree with this file, or `dotnet format` fails on the CI runners.
+* text=auto eol=lf
 
 # Never touched by end-of-line normalisation.
 *.png binary

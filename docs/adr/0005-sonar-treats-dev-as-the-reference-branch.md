@@ -11,4 +11,12 @@ merge, when it is too late to be acted on cheaply.
 branch has no analysis to compare against. Because release tags live on `main`
 (see [ADR-0001](./0001-git-flow-with-release-please-on-main.md)) and `dev` has
 none, `dev` cannot use a "previous version" new-code definition — it uses a
-rolling 30-day window, while `main` uses previous version.
+rolling 30-day window.
+
+`main` is not analysed at all. SonarQube Cloud's free plan covers exactly one
+long-lived branch, and spending it on `main` would put the gate after the merge
+instead of before it. In SonarQube Cloud the project's main branch is therefore
+renamed to `dev`, and the Sonar workflow only triggers on `dev` and on pull
+requests targeting it. Promotion pull requests into `main` carry no Sonar check —
+by then the code has already passed the gate on its way into `dev`.
+
