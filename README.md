@@ -78,9 +78,9 @@ moves nothing.
 
 | Workflow | Runs on | Does |
 | --- | --- | --- |
-| `ci.yaml` | PR and push to `dev` / `main` | Calls the reusable lint, test and build workflows |
+| `ci.yaml` | PR to `dev` / `main`, push to `main` | Calls the reusable lint, test and build workflows |
 | `sonar.yaml` | PR and push to `dev`, except Dependabot | Builds and tests under the SonarScanner for .NET, uploads coverage |
-| `security.yml` | PR and push to `dev` / `main` | Trivy filesystem scan, zizmor workflow audit |
+| `security.yml` | PR to `dev` / `main`, push to `main` | Trivy filesystem scan, zizmor workflow audit |
 | `release-please.yaml` | push to `main` | Maintains the release pull request |
 | `back-merge.yaml` | after a release | Opens and merges `main` → `dev` |
 
