@@ -1,4 +1,6 @@
+using Combat.Domain.Services;
 using Combat.Infrastructure.Persistence;
+using Combat.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,7 @@ public static class InfrastructureServiceRegistration
 
         return services
             .AddSingleton(Options.Create(databaseOptions))
+            .AddSingleton<IClock, SystemClock>()
             .AddEfConnection()
             .AddRepositories();
     }

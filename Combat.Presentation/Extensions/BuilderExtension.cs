@@ -13,7 +13,7 @@ public static class BuilderExtension
         builder.Services.AddOpenApi();
         builder.Services.AddHealthChecks();
 
-        builder.Services.ConfigureLogger(builder);
+        ConfigureLogger(builder);
 
         builder.Services.AddTransient<ExceptionHandlingMiddleware>();
         builder.Services.AddHttpClient();
@@ -21,7 +21,7 @@ public static class BuilderExtension
         return builder;
     }
 
-    private static IServiceCollection ConfigureLogger(this IServiceCollection services, WebApplicationBuilder builder)
+    private static void ConfigureLogger(WebApplicationBuilder builder)
     {
         builder.Host.UseSerilog((context, loggerConfiguration) =>
         {
@@ -31,6 +31,5 @@ public static class BuilderExtension
                 .Destructure.With<IgnoreLoggingDestructuringPolicy>();
         }, preserveStaticLogger: true);
 
-        return services;
     }
 }
