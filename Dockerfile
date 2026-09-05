@@ -23,4 +23,8 @@ ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 COPY --from=build /app/publish .
+
+# Unprivileged "app" user shipped by the aspnet image.
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Combat.Presentation.dll"]
