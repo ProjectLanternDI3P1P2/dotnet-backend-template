@@ -30,6 +30,31 @@ dotnet test --solution Combat.Presentation.slnx
 dotnet run --project Combat.Presentation/Combat.Presentation.csproj
 ```
 
+## Running the stack
+
+```bash
+docker compose up -d --build
+```
+
+The API listens on <http://localhost:8080>, Postgres on host port 5433. Because
+`ASPNETCORE_ENVIRONMENT` is `Development`, the OpenAPI document is served at
+`/openapi/v1.json` and the Scalar UI at `/scalar`.
+
+```bash
+curl http://localhost:8080/health/live
+curl http://localhost:8080/health/ready
+docker compose down -v   # -v also drops the database volume
+```
+
+**The schema does not exist yet.** There are no EF Core migrations, and nothing
+calls `EnsureCreated`, so `/api/v1/players` fails against an empty database while
+the health endpoints still answer — they check nothing. Migration execution is
+listed as an open decision in
+[BACKEND_TECHNICAL_DECISIONS.md](./BACKEND_TECHNICAL_DECISIONS.md); until it is
+settled, create the schema by hand or add migrations to your own service.
+
+## Toolchain
+
 The SDK version is pinned in `global.json`; `dotnet tool restore` installs the
 coverage collector and the git-hook runner declared in `dotnet-tools.json`.
 Run `dotnet husky install` once per clone to enable the pre-commit hook — git
