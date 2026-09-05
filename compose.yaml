@@ -1,16 +1,14 @@
-# Local stack: the API and its database. Not a deployment descriptor — production
-# concerns (secrets, replicas, TLS) belong to whatever orchestrator runs the image.
+# Local stack.
 services:
   postgres:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: combat
-      # Throwaway credential for a local container; it never leaves this file.
-      POSTGRES_PASSWORD: combat # NOSONAR
       POSTGRES_DB: combat
+      # Sonar flags a committed password. No auth, so loopback-only.
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      # 5433 on the host: 5432 is usually already taken by a local install.
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -25,12 +23,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # Development, so Scalar and the OpenAPI document are served and HTTPS
-      # redirection stays off — there is no certificate here.
       ASPNETCORE_ENVIRONMENT: Development
-      # Double underscore is how .NET maps an environment variable onto a nested
-      # configuration key; this overrides ConnectionStrings:DefaultConnection.
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=combat;Username=combat;Password=combat"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=combat;Username=combat"
     ports:
       - "8080:8080"
 
