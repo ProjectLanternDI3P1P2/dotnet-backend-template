@@ -22,6 +22,15 @@ jobs:
   sonar:
     name: SonarQube Cloud scan
     runs-on: ubuntu-latest
+    # Dependabot pull requests are handed Dependabot's own secrets, never the Actions
+    # ones, so SONAR_TOKEN would be empty and the scan would fail on every bump. Nothing
+    # is lost: a dependency bump changes no C# line, so there is no new code to analyse,
+    # and the check that does care about a vulnerable package — Trivy — needs no secret
+    # and runs on these pull requests like on any other.
+    #
+    # Do not make this check required while this condition exists: a required check that
+    # never runs blocks every Dependabot pull request permanently.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

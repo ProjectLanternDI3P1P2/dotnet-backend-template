@@ -79,7 +79,7 @@ moves nothing.
 | Workflow | Runs on | Does |
 | --- | --- | --- |
 | `ci.yaml` | PR and push to `dev` / `main` | Calls the reusable lint, test and build workflows |
-| `sonar.yaml` | PR and push to `dev` | Builds and tests under the SonarScanner for .NET, uploads coverage |
+| `sonar.yaml` | PR and push to `dev`, except Dependabot | Builds and tests under the SonarScanner for .NET, uploads coverage |
 | `security.yml` | PR and push to `dev` / `main` | Trivy filesystem scan, zizmor workflow audit |
 | `release-please.yaml` | push to `main` | Maintains the release pull request |
 | `back-merge.yaml` | after a release | Opens and merges `main` → `dev` |
@@ -116,9 +116,9 @@ from lint and unit tests.
    the release pull request would never get a CI run.
 4. Set `dev` as the default branch and protect both `dev` and `main`. Required
    checks: `Lint / dotnet format`, `Test / dotnet test`, `Build / dotnet build`,
-   `Trivy Security Scan`, `GitHub Actions audit` — and `SonarQube Cloud scan`
-   once `SONAR_TOKEN` exists, not before: a required check that can never pass
-   blocks every merge. Keep "require linear history" **off**, or the merge
+   `Trivy Security Scan`, `GitHub Actions audit`. **Not** `SonarQube Cloud scan`:
+   it is skipped on Dependabot pull requests, and a required check that never
+   runs blocks them forever. Keep "require linear history" **off**, or the merge
    commits this flow depends on become impossible.
 5. Enable auto-merge on the repository; the back-merge workflow uses it.
 6. Rename the `Combat.*` projects to your service name, and update `/k:` and
