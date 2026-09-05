@@ -120,6 +120,11 @@ from lint and unit tests.
    it is skipped on Dependabot pull requests, and a required check that never
    runs blocks them forever. Keep "require linear history" **off**, or the merge
    commits this flow depends on become impossible.
-5. Enable auto-merge on the repository; the back-merge workflow uses it.
-6. Rename the `Combat.*` projects to your service name, and update `/k:` and
+5. Add two rulesets so the merge strategy is enforced rather than merely written
+   down (ADR-0007): one on `dev` allowing **squash** only, one on `main` allowing
+   **merge commits** only. Give organisation admins a bypass on the `dev` one —
+   the back-merge workflow merges `main` into `dev` with a merge commit and would
+   otherwise be refused.
+6. Enable auto-merge on the repository; the back-merge workflow uses it.
+7. Rename the `Combat.*` projects to your service name, and update `/k:` and
    `/o:` in `.github/workflows/sonar.yaml`.
