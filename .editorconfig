@@ -2,7 +2,8 @@ root = true
 
 [*]
 charset = utf-8
-end_of_line = crlf
+# LF, matching .gitattributes. See the comment there for why not CRLF.
+end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
