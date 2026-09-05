@@ -5,7 +5,8 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: combat
-      POSTGRES_PASSWORD: combat
+      # Throwaway credential for a local container; it never leaves this file.
+      POSTGRES_PASSWORD: combat # NOSONAR
       POSTGRES_DB: combat
     ports:
       # 5433 on the host: 5432 is usually already taken by a local install.
