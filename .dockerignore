@@ -1,10 +1,12 @@
-bin/
-obj/
-.vs/
-.vscode/
+# Leading **/ matters: "obj/" alone only matches the repository root, so the per
+# project obj/ folders were copied in and overwrote the restore done in the image.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
 
-*.user
-TestResults/
-coverage/
-logs/
-*.log
+**/*.user
+**/TestResults/
+**/coverage/
+**/logs/
+**/*.log
