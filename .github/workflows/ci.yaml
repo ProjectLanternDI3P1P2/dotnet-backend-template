@@ -4,11 +4,15 @@ name: CI
 # called workflows own everything language-specific. Swapping .NET for another stack
 # means rewriting _lint / _test / _build and leaving this file untouched.
 
+# push on main only, not dev: the promotion pull request has dev as its head, so a
+# push trigger on dev would fire alongside the pull_request one and every check would
+# appear twice. Nothing is lost — dev requires branches to be up to date before
+# merging, so a pull request is already checked against the dev it will become.
 on:
   pull_request:
     branches: [dev, main]
   push:
-    branches: [dev, main]
+    branches: [main]
   workflow_dispatch:
 
 # One run per branch. Superseded pull request runs are cancelled; runs on dev and

@@ -4,7 +4,7 @@ namespace Combat.Domain.Services;
 // belongs to the business model but does not naturally fit on one entity.
 public sealed class DamageCalculator
 {
-    public int CalculateDamage(int attack, int defense)
+    public static int CalculateDamage(int attack, int defense)
     {
         return Math.Max(1, attack - defense);
     }

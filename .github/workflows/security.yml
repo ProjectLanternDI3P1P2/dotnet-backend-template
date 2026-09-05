@@ -1,8 +1,9 @@
 name: Security Scan
 
+# push on main only — same reason as ci.yaml.
 on:
   push:
-    branches: [dev, main]
+    branches: [main]
   pull_request:
     branches: [dev, main]
   workflow_dispatch:
