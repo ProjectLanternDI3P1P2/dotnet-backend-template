@@ -42,7 +42,7 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
 
         context.Response.StatusCode = StatusCodes.Status404NotFound;
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails);
+        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
     }
 
     private static async Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
@@ -64,7 +64,7 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
 
         context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails);
+        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
     }
 
     private static string ToCamelCase(string propertyName)
@@ -90,6 +90,6 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails);
+        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
     }
 }

@@ -14,4 +14,4 @@ var app = builder.Build();
 
 app.ConfigureStart();
 
-app.Run();
+await app.RunAsync();
