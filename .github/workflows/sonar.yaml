@@ -27,13 +27,13 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_DB: combat_test
-          POSTGRES_USER: combat
+          POSTGRES_DB: leaderboard_test
+          POSTGRES_USER: leaderboard
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U combat -d combat_test"
+          --health-cmd "pg_isready -U leaderboard -d leaderboard_test"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -72,7 +72,7 @@ jobs:
           dotnet nuget remove source github || true
           dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --name github --username "$NUGET_USERNAME" --password "$NUGET_AUTH_TOKEN" --store-password-in-clear-text
 
-      # dotnet-sonarscanner and dotnet-coverage are pinned in dotnet-tools.json, so CI
+      # dotnet-sonarscanner and dotnet-coverage are pinned in .config/dotnet-tools.json, so CI
       # and a developer's machine run the same versions.
       - name: Restore .NET tools
         run: dotnet tool restore
@@ -82,7 +82,7 @@ jobs:
       - name: Build, test and analyse
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          COMBAT_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=combat_test;Username=combat
+          LEADERBOARD_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=leaderboard_test;Username=leaderboard
         run: |
           dotnet dotnet-sonarscanner begin \
             /k:"ProjectLanternDI3P1P2_leaderboard-backend" \
