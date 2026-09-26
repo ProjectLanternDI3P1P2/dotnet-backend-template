@@ -10,7 +10,10 @@ public sealed class PlayerRepository(LeaderboardDbContext dbContext) : IPlayerRe
         await dbContext.Players.AddAsync(player, cancellationToken);
     }
 
-    public async Task<Player?> GetPlayerByIdAsync(Guid playerId, CancellationToken cancellationToken)
+    public async Task<Player?> GetPlayerByIdAsync(
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
     {
         return await dbContext.Players.FindAsync([playerId], cancellationToken);
     }
