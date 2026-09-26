@@ -202,7 +202,8 @@ Respawn. Start the database with `docker compose up -d postgres`, then run:
 dotnet test --solution Leaderboard.Presentation.slnx --filter "FullyQualifiedName~Integration"
 ```
 
-Each fixture creates and drops a unique database. Set
+Each fixture creates and drops a unique database, then applies the service
+migrations. Set
 `LEADERBOARD_TEST_DATABASE_CONNECTION` to use another administrative PostgreSQL
 connection; the administrative database is never reset.
 
