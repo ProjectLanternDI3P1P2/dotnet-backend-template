@@ -1,8 +1,8 @@
 using Combat.Contracts.V1;
-using Leaderboard.Domain.Entities;
-using Leaderboard.Infrastructure.Persistence;
 using FluentAssertions;
 using Grpc.Net.Client;
+using Leaderboard.Domain.Entities;
+using Leaderboard.Infrastructure.Persistence;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,7 +19,8 @@ public sealed class PlayerGrpcServiceIntegrationTests : IAsyncLifetime
         database = await TestDatabase.CreateAsync($"leaderboard_test_grpc_{Guid.NewGuid():N}");
         factory = new LeaderboardWebApplicationFactory(database.ConnectionString);
         await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
-        LeaderboardDbContext context = scope.ServiceProvider.GetRequiredService<LeaderboardDbContext>();
+        LeaderboardDbContext context =
+            scope.ServiceProvider.GetRequiredService<LeaderboardDbContext>();
         context.Players.Add(
             new Player
             {

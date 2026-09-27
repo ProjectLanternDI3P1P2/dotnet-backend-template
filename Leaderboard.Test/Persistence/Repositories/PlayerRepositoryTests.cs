@@ -1,8 +1,8 @@
 using Bogus;
+using FluentAssertions;
 using Leaderboard.Domain.Entities;
 using Leaderboard.Infrastructure.Persistence;
 using Leaderboard.Infrastructure.Persistence.Repositories;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Leaderboard.Test.Persistence.Repositories;

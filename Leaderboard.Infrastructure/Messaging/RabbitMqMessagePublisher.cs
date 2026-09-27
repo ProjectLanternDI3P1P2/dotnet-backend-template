@@ -1,6 +1,6 @@
-using Leaderboard.Application.Messaging;
 using Combat.Contracts.Events.V1;
 using Google.Protobuf;
+using Leaderboard.Application.Messaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;

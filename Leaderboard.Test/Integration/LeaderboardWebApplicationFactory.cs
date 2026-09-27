@@ -27,7 +27,9 @@ public sealed class LeaderboardWebApplicationFactory(string connectionString)
         {
             services.RemoveAll<DbContextOptions<LeaderboardDbContext>>();
             services.RemoveAll<LeaderboardDbContext>();
-            services.AddDbContext<LeaderboardDbContext>(options => options.UseNpgsql(connectionString));
+            services.AddDbContext<LeaderboardDbContext>(options =>
+                options.UseNpgsql(connectionString)
+            );
         });
     }
 }

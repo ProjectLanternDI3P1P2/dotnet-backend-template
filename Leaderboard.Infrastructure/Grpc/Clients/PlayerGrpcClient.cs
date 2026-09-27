@@ -1,8 +1,8 @@
+using Combat.Contracts.V1;
+using Grpc.Core;
 using Leaderboard.Application.Models;
 using Leaderboard.Application.Ports;
-using Combat.Contracts.V1;
 using Leaderboard.Infrastructure.Grpc.Configuration;
-using Grpc.Core;
 using Microsoft.Extensions.Options;
 
 namespace Leaderboard.Infrastructure.Grpc.Clients;

@@ -11,7 +11,8 @@ public static class DatabaseSeedingExtensions
     )
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
-        LeaderboardDbContext context = scope.ServiceProvider.GetRequiredService<LeaderboardDbContext>();
+        LeaderboardDbContext context =
+            scope.ServiceProvider.GetRequiredService<LeaderboardDbContext>();
 
         await context.Database.MigrateAsync(cancellationToken);
         await DataSeeder.SeedAsync(context, cancellationToken);

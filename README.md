@@ -127,9 +127,9 @@ dotnet tool run dotnet-ef migrations add <MigrationName> --project Leaderboard.I
 dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Presentation
 ```
 
-If you created the `Players` table manually while testing, start with a fresh
-local volume (`docker compose down -v`, then `docker compose up -d`) before the
-first `database update`; the initial migration must create that table itself.
+`<Service>.Infrastructure` owns migrations and the design-time DbContext factory.
+Development startup applies them before seeding. Production-like deployments must
+run migrations as a controlled rollout step, never by every application instance.
 
 For host-based development, `appsettings.Development.json` targets the Compose
 PostgreSQL port `5433`. The Compose API uses its own `postgres:5432` connection.
@@ -194,9 +194,9 @@ once per clone.
 
 ## Integration tests
 
-`Leaderboard.Test/Integration` contains runnable examples for both a REST
-controller and the gRPC service. They use `WebApplicationFactory`, PostgreSQL and
-Respawn. Start the database with `docker compose up -d postgres`, then run:
+`Leaderboard.Test/Integration` contains runnable examples for both a REST controller
+and a gRPC service. They use `WebApplicationFactory`, PostgreSQL and Respawn.
+Start the database with `docker compose up -d postgres`, then run:
 
 ```powershell
 dotnet test --solution Leaderboard.Presentation.slnx --filter "FullyQualifiedName~Integration"
@@ -205,7 +205,7 @@ dotnet test --solution Leaderboard.Presentation.slnx --filter "FullyQualifiedNam
 Each fixture creates and drops a unique database, then applies the service
 migrations. Set
 `LEADERBOARD_TEST_DATABASE_CONNECTION` to use another administrative PostgreSQL
-connection; the administrative database is never reset.
+connection; it is never reset itself.
 
 ## Setting up a new repository from this template
 

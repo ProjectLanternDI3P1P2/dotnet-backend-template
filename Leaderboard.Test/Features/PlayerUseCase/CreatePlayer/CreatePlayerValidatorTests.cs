@@ -1,6 +1,6 @@
 using Bogus;
-using Leaderboard.Application.Features.PlayerUseCase.CreatePlayer;
 using FluentValidation.TestHelper;
+using Leaderboard.Application.Features.PlayerUseCase.CreatePlayer;
 
 namespace Leaderboard.Test.Features.PlayerUseCase.CreatePlayer;
 

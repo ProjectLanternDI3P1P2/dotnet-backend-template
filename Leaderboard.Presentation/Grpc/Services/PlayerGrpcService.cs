@@ -1,6 +1,6 @@
-using Leaderboard.Application.Features.PlayerUseCase.GetPlayerById;
 using Combat.Contracts.V1;
 using Grpc.Core;
+using Leaderboard.Application.Features.PlayerUseCase.GetPlayerById;
 using MediatR;
 using ILogger = Serilog.ILogger;
 

@@ -21,9 +21,8 @@ public sealed class LeaderboardDbContextFactory : IDesignTimeDbContextFactory<Le
             ?? throw new InvalidOperationException(
                 "ConnectionStrings:DefaultConnection is required to create EF Core migrations.");
 
-        DbContextOptions<LeaderboardDbContext> options = new DbContextOptionsBuilder<LeaderboardDbContext>()
-            .UseNpgsql(connectionString)
-            .Options;
+        DbContextOptions<LeaderboardDbContext> options =
+            new DbContextOptionsBuilder<LeaderboardDbContext>().UseNpgsql(connectionString).Options;
 
         return new LeaderboardDbContext(options);
     }
@@ -32,7 +31,10 @@ public sealed class LeaderboardDbContextFactory : IDesignTimeDbContextFactory<Le
     {
         for (DirectoryInfo? directory = new(Directory.GetCurrentDirectory()); directory is not null; directory = directory.Parent)
         {
-            string presentationDirectory = Path.Combine(directory.FullName, "Leaderboard.Presentation");
+            string presentationDirectory = Path.Combine(
+                directory.FullName,
+                "Leaderboard.Presentation"
+            );
             if (File.Exists(Path.Combine(presentationDirectory, "appsettings.json")))
             {
                 return presentationDirectory;

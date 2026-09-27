@@ -1,7 +1,7 @@
-using Leaderboard.Application.PipelineBehavior;
-using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using FluentValidation;
+using Leaderboard.Application.PipelineBehavior;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Leaderboard.Application;
 

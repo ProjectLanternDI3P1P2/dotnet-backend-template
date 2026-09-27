@@ -1,7 +1,7 @@
-using Leaderboard.Application.PipelineBehavior;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
+using Leaderboard.Application.PipelineBehavior;
 using MediatR;
 using Moq;
 

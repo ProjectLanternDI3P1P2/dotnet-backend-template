@@ -1,8 +1,8 @@
 using Bogus;
+using FluentAssertions;
 using Leaderboard.Application.Features.PlayerUseCase.GetPlayerById;
 using Leaderboard.Domain.Entities;
 using Leaderboard.Domain.Repositories;
-using FluentAssertions;
 using Moq;
 
 namespace Leaderboard.Test.Features.PlayerUseCase.GetPlayerById;

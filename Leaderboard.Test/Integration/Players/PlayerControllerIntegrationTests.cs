@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Leaderboard.Presentation.DTO;
 using FluentAssertions;
+using Leaderboard.Presentation.DTO;
 
 namespace Leaderboard.Test.Integration.Players;
 

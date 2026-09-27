@@ -1,8 +1,8 @@
+using FluentAssertions;
 using Leaderboard.Application.Abstractions;
 using Leaderboard.Domain.Entities;
 using Leaderboard.Infrastructure.Persistence;
 using Leaderboard.Infrastructure.PipelineBehavior;
-using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
