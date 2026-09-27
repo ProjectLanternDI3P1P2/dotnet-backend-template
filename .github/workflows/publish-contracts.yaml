@@ -5,6 +5,7 @@ name: Publish Protocol Buffer contracts
 on:
   push:
     tags: ["contracts-v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
