@@ -86,7 +86,7 @@ Apply the EF Core migrations before calling endpoints that persist data:
 
 ```powershell
 dotnet tool restore
-dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Presentation
+dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Infrastructure
 ```
 
 ## Toolchain
@@ -126,7 +126,6 @@ dotnet tool run dotnet-ef migrations add <MigrationName> --project Leaderboard.I
 dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Infrastructure
 ```
 
-`<Service>.Infrastructure` owns migrations and the design-time DbContext factory.
 Development startup applies them before seeding. Production-like deployments must
 run migrations as a controlled rollout step, never by every application instance.
 
