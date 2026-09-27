@@ -76,7 +76,7 @@ jobs:
           COMBAT_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=combat_test;Username=combat
         run: |
           dotnet dotnet-sonarscanner begin \
-            /k:"ProjectLanternDI3P1P2_dotnet-backend-template" \
+            /k:"ProjectLanternDI3P1P2_player-backend" \
             /o:"projectlanterndi3p1p2" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
