@@ -17,9 +17,11 @@ public sealed class LeaderboardDbContextFactory : IDesignTimeDbContextFactory<Le
             .AddEnvironmentVariables()
             .Build();
 
-        string connectionString = configuration.GetConnectionString("DefaultConnection")
+        string connectionString =
+            configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
-                "ConnectionStrings:DefaultConnection is required to create EF Core migrations.");
+                "ConnectionStrings:DefaultConnection is required to create EF Core migrations."
+            );
 
         DbContextOptions<LeaderboardDbContext> options =
             new DbContextOptionsBuilder<LeaderboardDbContext>().UseNpgsql(connectionString).Options;
@@ -29,7 +31,11 @@ public sealed class LeaderboardDbContextFactory : IDesignTimeDbContextFactory<Le
 
     private static string FindPresentationConfigurationDirectory()
     {
-        for (DirectoryInfo? directory = new(Directory.GetCurrentDirectory()); directory is not null; directory = directory.Parent)
+        for (
+            DirectoryInfo? directory = new(Directory.GetCurrentDirectory());
+            directory is not null;
+            directory = directory.Parent
+        )
         {
             string presentationDirectory = Path.Combine(
                 directory.FullName,
@@ -41,6 +47,8 @@ public sealed class LeaderboardDbContextFactory : IDesignTimeDbContextFactory<Le
             }
         }
 
-        throw new InvalidOperationException("Could not find Leaderboard.Presentation/appsettings.json from the current directory.");
+        throw new InvalidOperationException(
+            "Could not find Leaderboard.Presentation/appsettings.json from the current directory."
+        );
     }
 }

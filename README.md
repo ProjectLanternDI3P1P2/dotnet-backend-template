@@ -116,15 +116,14 @@ secret instead of storing it in the configuration file.
 ## Database migrations
 
 `Leaderboard.Infrastructure` owns both the migrations and the design-time
-`LeaderboardDbContextFactory`; `Leaderboard.Presentation` is the startup project
-for EF Core Tools. This keeps `Leaderboard.Presentation` free of the EF Core Design
-dependency. The factory loads the Presentation configuration from the repository
-root and lets `ConnectionStrings__DefaultConnection` override it.
+`LeaderboardDbContextFactory`, including the EF Core Design dependency. The factory
+loads the Presentation configuration from the repository root and lets
+`ConnectionStrings__DefaultConnection` override it.
 
 ```powershell
 dotnet tool restore
-dotnet tool run dotnet-ef migrations add <MigrationName> --project Leaderboard.Infrastructure --startup-project Leaderboard.Presentation
-dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Presentation
+dotnet tool run dotnet-ef migrations add <MigrationName> --project Leaderboard.Infrastructure --startup-project Leaderboard.Infrastructure
+dotnet tool run dotnet-ef database update --project Leaderboard.Infrastructure --startup-project Leaderboard.Infrastructure
 ```
 
 `<Service>.Infrastructure` owns migrations and the design-time DbContext factory.

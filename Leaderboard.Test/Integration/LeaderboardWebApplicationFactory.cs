@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Leaderboard.Test.Integration;
 
@@ -27,6 +28,10 @@ public sealed class LeaderboardWebApplicationFactory(string connectionString)
         {
             services.RemoveAll<DbContextOptions<LeaderboardDbContext>>();
             services.RemoveAll<LeaderboardDbContext>();
+            services.RemoveAll<IOptions<DatabaseOptions>>();
+            services.AddSingleton<IOptions<DatabaseOptions>>(
+                Options.Create(new DatabaseOptions { DefaultConnection = connectionString })
+            );
             services.AddDbContext<LeaderboardDbContext>(options =>
                 options.UseNpgsql(connectionString)
             );
