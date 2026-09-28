@@ -21,58 +21,63 @@ La génération est une fonction pure de `(seed, réglages, version)` : pas
 d'horloge, pas de `System.Random`, pas de collection ordonnée par hachage, pas
 de flottant.
 
-1. **Graphe de salles** (`RoomGraphBuilder`). Les salles sont posées sur une
-   grille de 13 × 13 cases. On part du centre, et chaque nouvelle salle est
-   **accrochée à une salle existante** : le donjon est connexe par construction
-   et contient exactement le nombre de salles demandé, sans boucle de
-   ré-essai qui pourrait échouer. Les cases touchant une seule salle sont
-   préférées (60 %), ce qui produit des branches et des culs-de-sac plutôt
-   qu'un bloc compact.
+Un donjon compte **4 étages de 10 salles** (40 salles), plus une salle
+d'escalier sur chacun des 3 premiers étages. Chaque étage se termine par un
+boss ; celui du dernier étage est le boss final.
+
+1. **Graphe de salles** (`RoomGraphBuilder`). Les salles d'un étage sont posées
+   sur une grille de 13 × 13 cases. On part du centre, et chaque nouvelle salle
+   est **accrochée à une salle existante** : l'étage est connexe par
+   construction et contient exactement le nombre de salles demandé, sans boucle
+   de ré-essai qui pourrait échouer. Les cases touchant une seule salle sont
+   préférées (60 %), ce qui produit des branches et des culs-de-sac.
 2. **Boucles.** Deux salles voisines non reliées reçoivent une porte
-   supplémentaire avec 30 % de chance (environ 2 boucles par donjon) : moins
-   d'allers-retours pour le joueur.
-3. **Salle finale.** Choisie *après* les boucles : c'est le cul-de-sac le plus
-   éloigné du départ. Aucune boucle ne peut donc la rapprocher : sur 20 000
-   seeds, le boss est toujours au bout d'une branche, à au moins 5 salles du
-   départ, et à 9 en moyenne.
-4. **Types de salles par quotas**, pas par probabilité : pour 40 salles,
-   1 départ, 1 boss, 4 trésors (en priorité dans les culs-de-sac), 6 salles vides
-   et 28 salles de combat. Aucun donjon n'est « malchanceux » dans sa répartition.
-5. **Tuiles** (`FloorBuilder`). Chaque case fait 19 × 15 tuiles. L'intérieur
-   d'une salle couvre toujours la ligne et la colonne centrales de sa case :
-   le couloir entre deux voisines est donc une ligne droite qui ne peut ni
-   rater une porte ni traverser une autre salle. Les tailles varient
-   franchement : 30 % de petites salles (5–7 × 4–5), 45 % de moyennes
-   (8–11 × 5–6), 25 % de grandes (12–15 × 7–8) ; le boss a toujours une grande
-   salle (15 × 8). Une salle qui n'a de voisins que d'un côté est poussée vers
-   eux : les couloirs restent courts.
-6. **Aménagement** (`RoomLayouts`). Chaque salle reçoit une disposition, pour
-   qu'aucune ne ressemble à la précédente :
+   supplémentaire avec 30 % de chance : moins d'allers-retours.
+3. **Salle du boss et salle d'escalier.** Choisies *après* les boucles : le boss
+   attend au bout de la plus longue branche. Sur les étages qui ne sont pas les
+   derniers, la salle d'escalier est ajoutée **juste au nord** de la salle du
+   boss, reliée à elle seule. La porte entre les deux est une **grille**
+   (`gate`) : fermée tant que le boss de l'étage n'est pas vaincu. Si la salle du
+   boss n'a de place qu'au sud, l'étage entier est retourné de haut en bas.
+4. **Types de salles par quotas** : par étage, 1 départ, 1 boss, 1 trésor (en
+   priorité dans un cul-de-sac), 1 salle vide et 6 salles de combat.
+5. **Salles dessinées à la main** (`RoomTemplates`). Chaque salle reçoit un
+   gabarit, tiré au sort parmi ceux de son type, en miroir ou non ; un même
+   gabarit n'est jamais utilisé deux fois sur un étage. Les gabarits reprennent
+   les idées des cartes d'exemple du pack :
 
-   | Disposition | Salles | Ce qui est creusé ou posé |
-   | --- | --- | --- |
-   | Simple | départ, petites salles | rien, un peu de mobilier |
-   | Échancrée | moyennes et grandes | 1, 2 ou 4 coins retirés (salles en L ou en croix) |
-   | Fosses | grandes | 1 ou 2 trous dans le sol, entourés de murs |
-   | Cloisonnée | grandes | un mur intérieur percé d'une porte : deux sous-pièces |
-   | Colonnade | boss, escalier, grandes | deux rangées de colonnes |
-   | Cage | trésor | grille de fer autour du coffre, ouverte au sud |
-   | Réserve | moyennes | tonneaux et jarres entassés dans les coins |
+   | Type | Gabarits |
+   | --- | --- |
+   | Départ | antichambre, octogone, carrefour à colonnes |
+   | Combat | colonnade, fosses jumelles, salle en croix, chambre latérale, cellule nord (mur épais et passage), allées de pics, salle aux grilles d'égout, caserne, balcon à balustrade, réduit, salle en L effondrée, forêt de colonnes, galeries murées |
+   | Trésor | cage de fer, sanctuaire à colonnes, trésor derrière un cercle de pics |
+   | Vide | puits à grilles, réserve, galerie à colonnes (et deux gabarits de combat) |
+   | Boss | salle du trône, arène à balustrades, arène entre deux fosses |
+   | Escalier | escalier contre le mur nord entre deux colonnes, palier à balustrade, escalier entre quatre colonnes |
 
-   Chaque modification est annulée si elle rend la salle mal formée : le
-   centre et chaque entrée doivent rester reliés par l'intérieur de la salle.
-   Les murs sont posés ensuite autour de tout ce qui est praticable, fosses
-   comprises.
-7. **Contenu.** Les obstacles (tonneaux, jarres) ne sont jamais posés sur la
-   croix centrale, et chaque pose est vérifiée par un parcours en largeur :
-   aucun obstacle ne peut isoler une partie de salle. Les ennemis sont plus
-   nombreux quand on s'éloigne du départ (1 à 4 par salle). Un tiers des
-   salles de combat a une ligne de 2 à 4 pièges à pics (élément `trap`,
-   franchissable : c'est au service Combat d'en appliquer les dégâts).
-8. **Validation** (`DungeonValidator`). Le donjon généré est revérifié :
-   nombre de salles, un seul boss dans la salle finale, toute tuile praticable
-   atteignable depuis l'entrée, éléments sur des tuiles libres de leur salle.
-   Une violation lève une exception plutôt que de livrer un donjon cassé.
+   Légende d'un gabarit : `.` sol, `#` mur, espace = fosse, `o` tonneau ou
+   jarre, `I` colonne, `=` balustrade, `g` grille d'égout (praticable), `e`
+   emplacement d'ennemi, `t` piège, `$` trésor, `B` boss, `>` escalier, `<`
+   arrivée. Tout gabarit a des dimensions impaires, un centre praticable et une
+   tuile praticable au milieu de chaque côté ; un test vérifie chacun.
+6. **Tuiles** (`FloorBuilder`). Chaque colonne de la grille est aussi large que
+   sa plus grande salle (plus une marge de 3 tuiles de chaque côté), chaque
+   ligne aussi haute que sa plus grande salle. Chaque salle est centrée dans sa
+   case : les salles d'une même ligne partagent la même ligne centrale, celles
+   d'une même colonne la même colonne centrale. Le couloir entre deux voisines
+   est donc une ligne droite qui arrive au milieu d'un côté. Les murs sont
+   posés ensuite autour de tout ce qui n'est pas du vide : fosses, cloisons et
+   balustrades comprises.
+7. **Contenu.** Posé sur les emplacements des gabarits : le boss sur `B`, les
+   trésors sur `$`, tous les pièges `t` (élément `trap`, franchissable : c'est
+   au service Combat d'en appliquer les dégâts), et 1 à 4 ennemis tirés parmi
+   les emplacements `e`, plus nombreux loin du départ.
+8. **Validation** (`DungeonValidator`). Chaque donjon généré est revérifié :
+   10 salles par étage, un boss par étage dans sa salle, salle d'escalier reliée
+   à la seule salle du boss, **escalier inaccessible sans passer la grille**,
+   toute tuile praticable atteignable depuis l'entrée, éléments sur des tuiles
+   libres de leur salle. Une violation lève une exception plutôt que de livrer
+   un donjon cassé.
 
 ## 3. Seed et déterminisme
 
@@ -95,12 +100,13 @@ de flottant.
   Un test *golden master* échoue dès qu'une modification change le donjon
   d'une seed existante : il faut alors incrémenter la version (et garder
   l'ancien algorithme si les anciennes runs doivent rester rejouables).
-  Version actuelle : **2** (salles variées, aménagements, colonnes, grilles,
-  pièges). Une run créée en version 1 répond 409 : il faut lancer une
-  nouvelle exploration.
+  Version actuelle : **3** (salles dessinées à la main, un boss par étage qui
+  garde l'escalier). Une run créée dans une version antérieure répond 409 : il
+  faut lancer une nouvelle exploration.
 - **Seed inconnue.** `GET /dungeons/{seed}/...` répond 404 pour une seed
   qu'aucune run n'a utilisée, et 422 pour une seed mal formée. Le donjon
-  n'est jamais stocké : il est régénéré à la demande (environ 2,3 ms) et gardé
+  n'est jamais stocké : il est régénéré à la demande (environ 13 ms pour les
+  4 étages) et gardé
   en cache mémoire.
 - **Rejouer.** `POST /dungeon-runs` avec une `seed` crée une nouvelle run sur
   le même donjon, avec les réglages et la version de la run d'origine.
@@ -111,14 +117,17 @@ de flottant.
 | --- | --- | --- |
 | `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed? }` | Crée une run et génère son donjon. Idempotent par `runId`. | 201, 409, 422 |
 | `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros. | 200, 404 |
-| `POST /api/v1/dungeon-runs/{runId}/moves` `{ direction }` | Une tuile, un tour. Murs, obstacles, colonnes, grilles, vide et hors carte refusés. | 200, 404, 409, 422 |
+| `POST /api/v1/dungeon-runs/{runId}/moves` `{ direction }` | Une tuile, un tour. Murs, obstacles, colonnes, balustrades, vide, hors carte et grille d'un boss encore debout refusés. | 200, 404, 409, 422 |
 | `POST /api/v1/dungeon-runs/{runId}/descents` | Prend l'escalier sous le héros. | 200, 404, 409 |
+| `POST /api/v1/dungeon-runs/{runId}/boss-defeats` | Enregistre la victoire sur le boss de l'étage : la grille s'ouvre ; sur le dernier étage, la run est gagnée (`won`). À appeler par Combat ; le héros doit être dans la salle du boss. | 200, 404, 409 |
 | `GET /api/v1/dungeons/{seed}/map?floor=0` | Étage complet : `rows` (1 caractère par tuile, décodé par `legend`), salles, éléments. | 200, 404, 422 |
 | `GET /api/v1/dungeons/{seed}/cell?x=&y=&floor=0` | Type d'une tuile, sa salle et ses éléments (Combat, Inventory). | 200, 404, 422 |
 
 Types de tuiles (`legend`) : `void`, `floor`, `wall`, `door`, `obstacle`,
-`pillar`, `fence`, `stairsDown`, `stairsUp`. Seuls `floor`, `door` et les
-escaliers sont praticables. Types d'éléments : `enemy`, `boss`, `item`, `trap`.
+`pillar`, `fence`, `stairsDown`, `stairsUp`, `gate`, `grate`. Sont praticables
+`floor`, `door`, `grate`, les escaliers, et `gate` une fois le boss de l'étage
+vaincu (champ `floorBossDefeated` de la run). Types d'éléments : `enemy`,
+`boss` (un par étage), `item`, `trap`.
 
 Un étage de 40 salles pèse environ 40 Ko en JSON (3 Ko compressé), contre
 environ 1 Mo avec un objet JSON par tuile. Les réponses `map` et `cell` sont
@@ -128,37 +137,38 @@ immuables pour une seed donnée : elles portent
 Deux déplacements simultanés sur la même run : `Turn` sert de jeton de
 concurrence, le second reçoit un 409 au lieu d'écraser le premier.
 
-## 5. Étages et escaliers
+## 5. Étages, boss et escaliers
 
-C'est prévu par le modèle et activable par configuration :
+Réglage par défaut, modifiable par configuration (les runs existantes gardent
+leurs réglages) :
 
 ```json
-"Dungeon": { "Generation": { "RoomCount": 40, "FloorCount": 3 } }
+"Dungeon": { "Generation": { "RoomCount": 40, "FloorCount": 4 } }
 ```
 
-- Les 40 salles sont réparties entre les étages (14, 13 et 13 pour 3 étages).
-- Chaque étage sauf le dernier a une salle d'escalier au bout de sa plus longue
-  branche. Le héros arrive à l'étage suivant sur un escalier montant.
-- Seul le dernier étage a le boss final : la règle « exactement un boss » tient
-  sur l'ensemble du donjon.
+- Les 40 salles sont réparties entre les étages : 10 par étage. Les salles
+  d'escalier ne comptent pas.
+- Chaque étage a son boss, au bout de sa plus longue branche. Sur les 3 premiers
+  étages, il garde la grille de la salle d'escalier, au nord de sa salle.
+- Vaincre le boss (`POST …/boss-defeats`, par Combat) ouvre la grille ; le
+  héros descend alors par l'escalier et arrive sur l'escalier montant de
+  l'étage suivant, où la grille est de nouveau fermée.
+- Vaincre le boss du dernier étage gagne la run (`status: won`).
 - Les étages sont indépendants : le front précharge l'étage suivant dès
   l'arrivée, la descente est instantanée.
-
-**Décision à prendre avec le PO :** « exactement 40 salles » s'entend-il pour
-tout le donjon (comportement actuel) ou par étage ? Pour passer à 40 salles par
-étage, il suffit de modifier `DungeonSettings.RoomCountForFloor`. Les runs
-existantes gardent leurs réglages.
+- Le combat n'existe pas encore : le front affiche un bouton « Fight the boss »
+  qui appelle cet endpoint, en attendant le service Combat.
 
 ## 6. Vérifications effectuées
 
-- 20 000 seeds générées : toutes valides, toutes différentes, 2,3 ms par
-  donjon. En moyenne par donjon : 88 tuiles creusées (échancrures, fosses,
-  cloisons), 28 colonnes, 28 grilles, 21 pièges.
-- 409 cas de tests du domaine exécutés (déterminisme, règles de l'US-01,
-  variété des salles, déplacements, escaliers, PRNG contre les valeurs de
-  référence).
-- Parcours complet dans le navigateur d'un donjon à 3 étages jusqu'au boss :
-  190 tours, positions client et serveur identiques à chaque pas.
+- 20 000 donjons de 4 étages générés : tous valides, tous différents, 13 ms par
+  donjon. Par étage en moyenne : 12 ennemis, 12 pièges.
+- 635 cas de tests du domaine (déterminisme, règles de l'US-01, gabarits,
+  grille du boss, déplacements, escaliers, PRNG contre les valeurs de
+  référence) et 19 tests des handlers concernés.
+- Partie complète dans le navigateur : 4 étages, 3 grilles franchies après
+  leur boss, victoire sur le boss final ; 729 tours, positions client et
+  serveur identiques à chaque pas.
 
 ## 7. Suite
 
@@ -169,3 +179,6 @@ existantes gardent leurs réglages.
   vient du template et porte encore l'ancien nom.
 - Pièges : définir avec l'équipe Combat l'effet d'un `trap` (dégâts,
   désamorçage) ; le Dungeon ne fait que les placer.
+- Combat : appeler `POST /dungeon-runs/{runId}/boss-defeats` à la victoire sur
+  un boss (idéalement par gRPC interne), puis retirer le bouton de test du
+  front et restreindre l'endpoint au réseau interne.
