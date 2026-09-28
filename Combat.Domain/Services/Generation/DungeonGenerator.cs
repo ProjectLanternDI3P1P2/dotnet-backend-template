@@ -16,7 +16,8 @@ public sealed class DungeonGenerator
     /// algorithm reachable if already stored runs must stay replayable.
     /// The golden-master test fails when the output changes without a bump.
     /// </summary>
-    public const int CurrentVersion = 1;
+    /// <remarks>Version 2: larger and more varied rooms, room layouts, pillars, fences, traps.</remarks>
+    public const int CurrentVersion = 2;
 
     public Dungeon Generate(Seed seed, DungeonSettings settings)
     {

@@ -10,4 +10,5 @@ public enum RandomStream : uint
     Layout = 1,
     RoomShapes = 2,
     Content = 3,
+    RoomLayouts = 4,
 }

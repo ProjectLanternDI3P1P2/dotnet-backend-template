@@ -41,7 +41,15 @@ public sealed class DungeonFloor
             RoomBounds interior = room.Interior;
             for (int y = interior.Y; y <= interior.Bottom; y++)
             {
-                Array.Fill(_roomIdByCell, (short)room.Id, y * width + interior.X, interior.Width);
+                for (int x = interior.X; x <= interior.Right; x++)
+                {
+                    // Pits and partition walls inside the bounds do not belong to the room.
+                    CellType cell = cells[y * width + x];
+                    if (cell is not (CellType.Wall or CellType.Void))
+                    {
+                        _roomIdByCell[y * width + x] = (short)room.Id;
+                    }
+                }
             }
         }
 
@@ -67,10 +75,7 @@ public sealed class DungeonFloor
 
     public bool Contains(Position position)
     {
-        return position.X >= 0
-            && position.Y >= 0
-            && position.X < Width
-            && position.Y < Height;
+        return position.X >= 0 && position.Y >= 0 && position.X < Width && position.Y < Height;
     }
 
     public CellType GetCell(Position position)
@@ -84,7 +89,7 @@ public sealed class DungeonFloor
         return Contains(position) && GetCell(position).IsWalkable();
     }
 
-    /// <summary>The room whose interior contains the position; null in corridors and walls.</summary>
+    /// <summary>The room the position belongs to; null in corridors, outer doors, walls and pits.</summary>
     public int? GetRoomId(Position position)
     {
         EnsureContains(position);
