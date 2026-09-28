@@ -14,6 +14,11 @@ public static class ApplicationExtension
             app.UseHttpsRedirection();
         }
 
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseCors(BuilderExtension.LocalFrontendsCorsPolicy);
+        }
+
         app.MapControllers();
         app.MapGrpcServices();
         app.MapHealthChecks("/health/live");
