@@ -1,4 +1,5 @@
 using Combat.Application.Features.DungeonRunUseCase.CreateDungeonRun;
+using Combat.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
 using Combat.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Combat.Application.Features.DungeonRunUseCase.MoveHero;
 using Combat.Application.Features.DungeonRunUseCase.TakeStairsDown;
@@ -79,10 +80,31 @@ public sealed class DungeonRunController(IMediator mediator, ILogger logger) : C
         await mediator.Send(new TakeStairsDownCommand(runId), cancellationToken);
         var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
 
+        logger.Information("Dungeon run {RunId} reached floor {Floor}.", runId, run.CurrentFloor);
+        return Ok(run);
+    }
+
+    /// <summary>
+    /// Records the defeat of the current floor's boss, which opens the gate to the stairs
+    /// (or wins the run on the last floor). For Combat to call once the fight is won.
+    /// 409 when the hero is not in the boss room.
+    /// </summary>
+    [HttpPost("{runId:guid}/boss-defeats")]
+    public async Task<IActionResult> DefeatFloorBoss(
+        Guid runId,
+        CancellationToken cancellationToken
+    )
+    {
+        logger.Information("Received boss defeat for dungeon run {RunId}.", runId);
+
+        await mediator.Send(new DefeatFloorBossCommand(runId), cancellationToken);
+        var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
+
         logger.Information(
-            "Dungeon run {RunId} reached floor {Floor}.",
+            "Dungeon run {RunId}: boss of floor {Floor} defeated, status {Status}.",
             runId,
-            run.CurrentFloor
+            run.CurrentFloor,
+            run.Status
         );
         return Ok(run);
     }

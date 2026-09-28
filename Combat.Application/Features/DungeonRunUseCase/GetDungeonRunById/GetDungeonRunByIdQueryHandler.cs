@@ -37,6 +37,7 @@ public sealed class GetDungeonRunByIdQueryHandler(
             CurrentFloor = run.CurrentFloor,
             Hero = PositionResult.From(run.HeroPosition),
             Turn = run.Turn,
+            FloorBossDefeated = run.IsFloorBossDefeated,
             CurrentRoomId = floor.GetRoomId(run.HeroPosition),
             ElementsHere = floor
                 .GetElementsAt(run.HeroPosition)

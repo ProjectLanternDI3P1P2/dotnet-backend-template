@@ -43,6 +43,8 @@ public class DungeonRunConfiguration : IEntityTypeConfiguration<DungeonRun>
         // silently overwriting the first.
         builder.Property(run => run.Turn).IsRequired().IsConcurrencyToken();
 
+        builder.Property(run => run.IsFloorBossDefeated).IsRequired().HasDefaultValue(false);
+
         builder.Property(run => run.StartedAt).IsRequired();
 
         builder.Ignore(run => run.HeroPosition);

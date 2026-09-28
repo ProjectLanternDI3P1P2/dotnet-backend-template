@@ -14,10 +14,7 @@ public class TakeStairsDownCommandHandlerTests
 {
     private readonly Mock<IDungeonRunRepository> _dungeonRunRepositoryMock = new();
     private readonly TakeStairsDownCommandHandler _handler;
-    private readonly Dungeon _dungeon = DungeonTestData.Generate(
-        DungeonTestData.ReferenceSeed,
-        new DungeonSettings(DungeonSettings.DefaultRoomCount, 2)
-    );
+    private readonly Dungeon _dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
     private readonly DungeonRun _run;
 
     public TakeStairsDownCommandHandlerTests()
@@ -36,13 +33,13 @@ public class TakeStairsDownCommandHandlerTests
     [Fact]
     public async Task Handle_HeroOnTheStairs_ArrivesOnTheNextFloor()
     {
-        // Arrange
+        // Arrange: beat the boss of the floor, then go through its gate to the stairs.
         DungeonFloor firstFloor = _dungeon.Floors[0];
-        Position stairs = DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).Single();
-        foreach (Direction direction in DungeonTestData.FindPath(firstFloor, _run.HeroPosition, stairs)!)
-        {
-            _run.MoveHero(direction, _dungeon);
-        }
+        Position boss = firstFloor.Elements.Single(element => element.Type == ElementType.Boss).Position;
+        Position stairs = DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).First();
+        WalkTo(firstFloor, boss);
+        _run.DefeatFloorBoss(_dungeon);
+        WalkTo(firstFloor, stairs);
 
         // Act
         await _handler.Handle(
@@ -68,5 +65,13 @@ public class TakeStairsDownCommandHandlerTests
         // Assert
         await act.Should().ThrowAsync<InvalidMoveException>();
         _run.CurrentFloor.Should().Be(0);
+    }
+
+    private void WalkTo(DungeonFloor floor, Position target)
+    {
+        foreach (Direction direction in DungeonTestData.FindPath(floor, _run.HeroPosition, target)!)
+        {
+            _run.MoveHero(direction, _dungeon);
+        }
     }
 }

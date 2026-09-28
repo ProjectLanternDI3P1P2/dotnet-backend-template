@@ -51,7 +51,10 @@ public class GetDungeonMapQueryHandlerTests
         map.Rows.Should().OnlyContain(row => row.Length == expected.Width);
         map.Legend["#"].Should().Be("wall");
         map.Legend["."].Should().Be("floor");
-        map.Rooms.Should().HaveCount(40);
+        map.Legend["G"].Should().Be("gate");
+        map.FloorCount.Should().Be(4);
+        map.Rooms.Should().HaveCount(expected.Rooms.Count);
+        map.Rooms.Count(room => room.Type != "stairs").Should().Be(10);
         map.Elements.Should().HaveCount(expected.Elements.Count);
         map.Elements.Should().ContainSingle(element => element.Type == "boss");
         map.Entrance.X.Should().Be(expected.Entrance.X);
@@ -101,7 +104,10 @@ public class GetDungeonMapQueryHandlerTests
         Func<Task> act = async () =>
             await CreateHandler()
                 .Handle(
-                    new GetDungeonMapQuery(DungeonTestData.ReferenceSeed.ToString(), 1),
+                    new GetDungeonMapQuery(
+                        DungeonTestData.ReferenceSeed.ToString(),
+                        DungeonSettings.DefaultFloorCount
+                    ),
                     TestContext.Current.CancellationToken
                 );
 

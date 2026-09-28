@@ -28,7 +28,9 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
         run.Seed.Should().HaveLength(13);
         run.Status.Should().Be("active");
         run.Hero.Should().Be(map.Entrance);
-        map.Rooms.Should().HaveCount(40);
+        run.FloorCount.Should().Be(4);
+        run.FloorBossDefeated.Should().BeFalse();
+        map.Rooms.Count(room => room.Type != "stairs").Should().Be(10);
         map.Elements.Should().ContainSingle(element => element.Type == "boss");
     }
 
@@ -36,12 +38,12 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
     public async Task PostDungeonRun_TwoExplorations_ProduceDifferentSeeds()
     {
         // Act
-        var first = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
-        var second = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
+        var first = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
+        var second = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
 
         // Assert
         second!.Seed.Should().NotBe(first!.Seed);
@@ -58,9 +60,11 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
             $"/api/v1/dungeons/{seed}/map",
             TestContext.Current.CancellationToken
         );
-        GetDungeonMapResult first = (await response.Content.ReadFromJsonAsync<GetDungeonMapResult>(
-            TestContext.Current.CancellationToken
-        ))!;
+        GetDungeonMapResult first = (
+            await response.Content.ReadFromJsonAsync<GetDungeonMapResult>(
+                TestContext.Current.CancellationToken
+            )
+        )!;
         GetDungeonMapResult second = await GetMapAsync(seed);
 
         // Assert
@@ -113,9 +117,9 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
     public async Task PostMove_TowardsAFloorTile_MovesTheHeroAndEndsTheTurn()
     {
         // Arrange
-        var run = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
+        var run = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
 
         // Act
         HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
@@ -134,12 +138,36 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
     }
 
     [Fact]
-    public async Task PostMove_UnknownDirection_Returns422()
+    public async Task PostBossDefeat_AwayFromTheBoss_Returns409AndKeepsTheGateClosed()
     {
         // Arrange
         var run = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
             TestContext.Current.CancellationToken
         );
+
+        // Act
+        HttpResponseMessage response = await fixture.HttpClient.PostAsync(
+            $"/api/v1/dungeon-runs/{run!.Id}/boss-defeats",
+            content: null,
+            TestContext.Current.CancellationToken
+        );
+        var after = await fixture.HttpClient.GetFromJsonAsync<GetDungeonRunByIdResult>(
+            $"/api/v1/dungeon-runs/{run.Id}",
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        after!.FloorBossDefeated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task PostMove_UnknownDirection_Returns422()
+    {
+        // Arrange
+        var run = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
 
         // Act
         HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
@@ -163,9 +191,9 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
 
     private async Task<string> CreateRunAndGetSeedAsync()
     {
-        var run = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
+        var run = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
         return run!.Seed;
     }
 

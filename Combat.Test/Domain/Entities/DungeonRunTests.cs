@@ -36,6 +36,7 @@ public class DungeonRunTests
     [InlineData(CellType.Door)]
     [InlineData(CellType.StairsDown)]
     [InlineData(CellType.StairsUp)]
+    [InlineData(CellType.Grate)]
     public void MoveHero_OntoAWalkableTile_MovesOneTileAndEndsTheTurn(CellType target)
     {
         // Arrange
@@ -91,13 +92,13 @@ public class DungeonRunTests
     }
 
     [Fact]
-    public void MoveHero_TowardsTheWallOfTheStartRoom_StopsAtTheWall()
+    public void MoveHero_TowardsTheWallOfTheStartRoom_StopsAtTheFirstBlockingTile()
     {
         // Arrange
         Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
-        // One row above the centre: doors only sit on the centre row and column.
+        // One row above the arrival: doors only sit on the centre row and column.
         run.MoveHero(Direction.North, dungeon);
 
         // Act
@@ -114,8 +115,8 @@ public class DungeonRunTests
         // Assert
         walkWest.Should().Throw<InvalidMoveException>();
         Room start = dungeon.Floors[0].Rooms[0];
-        run.HeroPosition.X.Should().Be(start.Interior.X);
-        dungeon.Floors[0].GetCell(run.HeroPosition.Step(Direction.West)).Should().Be(CellType.Wall);
+        start.Interior.Contains(run.HeroPosition).Should().BeTrue();
+        dungeon.Floors[0].IsWalkable(run.HeroPosition.Step(Direction.West)).Should().BeFalse();
         run.Turn.Should().Be(1 + steps);
     }
 
@@ -134,7 +135,10 @@ public class DungeonRunTests
             var direction = (Direction)random.NextInt(4);
             Position before = run.HeroPosition;
             int turn = run.Turn;
-            bool expectedToSucceed = floor.IsWalkable(before.Step(direction));
+            // The boss still stands: its gate stays locked.
+            bool expectedToSucceed =
+                floor.IsWalkable(before.Step(direction))
+                && floor.GetCell(before.Step(direction)) != CellType.Gate;
 
             // Act
             Action act = () => run.MoveHero(direction, dungeon);
@@ -171,42 +175,103 @@ public class DungeonRunTests
     }
 
     [Fact]
+    public void MoveHero_ThroughTheGateWhileTheBossStands_IsRejected()
+    {
+        // Arrange
+        Dungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, CellType.Gate);
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Act
+        Action act = () => run.MoveHero(Direction.East, dungeon);
+
+        // Assert
+        act.Should().Throw<InvalidMoveException>().WithMessage("*boss*");
+        run.HeroPosition.Should().Be(new Position(0, 0));
+    }
+
+    [Fact]
+    public void DefeatFloorBoss_InTheBossRoom_OpensTheGateToTheStairs()
+    {
+        // Arrange
+        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonFloor floor = dungeon.Floors[0];
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+        WalkTo(run, dungeon, BossOf(floor));
+        Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
+
+        // Act
+        run.DefeatFloorBoss(dungeon);
+        WalkTo(run, dungeon, gate);
+
+        // Assert
+        run.IsFloorBossDefeated.Should().BeTrue();
+        run.HeroPosition.Should().Be(gate);
+        run.Status.Should().Be(DungeonRunStatus.Active);
+    }
+
+    [Fact]
+    public void DefeatFloorBoss_OutsideTheBossRoom_IsRejected()
+    {
+        // Arrange
+        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Act
+        Action act = () => run.DefeatFloorBoss(dungeon);
+
+        // Assert
+        act.Should().Throw<BossNotInReachException>();
+        run.IsFloorBossDefeated.Should().BeFalse();
+        run.Turn.Should().Be(0);
+    }
+
+    [Fact]
+    public void DefeatFloorBoss_OnTheLastFloor_WinsTheRun()
+    {
+        // Arrange: a single floor, so its boss is the final boss.
+        Dungeon dungeon = DungeonTestData.Generate(
+            DungeonTestData.ReferenceSeed,
+            new DungeonSettings(10, 1)
+        );
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+        WalkTo(run, dungeon, BossOf(dungeon.Floors[0]));
+
+        // Act
+        run.DefeatFloorBoss(dungeon);
+
+        // Assert
+        run.Status.Should().Be(DungeonRunStatus.Won);
+        Action move = () => run.MoveHero(Direction.North, dungeon);
+        move.Should().Throw<DungeonRunNotActiveException>();
+    }
+
+    [Fact]
     public void TakeStairsDown_OnTheStairs_ArrivesOnTheStairsUpOfTheNextFloor()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(
-            DungeonTestData.ReferenceSeed,
-            new DungeonSettings(DungeonSettings.DefaultRoomCount, 2)
-        );
+        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonFloor firstFloor = dungeon.Floors[0];
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
-        Position stairs = DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).Single();
-
-        foreach (
-            Direction direction in DungeonTestData.FindPath(firstFloor, run.HeroPosition, stairs)!
-        )
-        {
-            run.MoveHero(direction, dungeon);
-        }
+        WalkTo(run, dungeon, BossOf(firstFloor));
+        run.DefeatFloorBoss(dungeon);
+        WalkTo(run, dungeon, DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).First());
 
         // Act
         int floor = run.TakeStairsDown(dungeon);
 
-        // Assert
+        // Assert: the boss of the new floor still guards its gate.
         floor.Should().Be(1);
         run.CurrentFloor.Should().Be(1);
         run.HeroPosition.Should().Be(dungeon.Floors[1].Entrance);
         dungeon.Floors[1].GetCell(run.HeroPosition).Should().Be(CellType.StairsUp);
+        run.IsFloorBossDefeated.Should().BeFalse();
     }
 
     [Fact]
     public void TakeStairsDown_AwayFromTheStairs_IsRejected()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(
-            DungeonTestData.ReferenceSeed,
-            new DungeonSettings(DungeonSettings.DefaultRoomCount, 2)
-        );
+        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -215,5 +280,17 @@ public class DungeonRunTests
         // Assert
         act.Should().Throw<InvalidMoveException>();
         run.CurrentFloor.Should().Be(0);
+    }
+
+    private static Position BossOf(DungeonFloor floor) =>
+        floor.Elements.Single(element => element.Type == ElementType.Boss).Position;
+
+    private static void WalkTo(DungeonRun run, Dungeon dungeon, Position target)
+    {
+        DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
+        foreach (Direction direction in DungeonTestData.FindPath(floor, run.HeroPosition, target)!)
+        {
+            run.MoveHero(direction, dungeon);
+        }
     }
 }

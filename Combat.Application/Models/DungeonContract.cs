@@ -40,6 +40,8 @@ public static class DungeonContract
             CellType.StairsUp => '<',
             CellType.Pillar => 'I',
             CellType.Fence => '=',
+            CellType.Gate => 'G',
+            CellType.Grate => 'g',
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -55,6 +57,8 @@ public static class DungeonContract
             CellType.StairsUp => "stairsUp",
             CellType.Pillar => "pillar",
             CellType.Fence => "fence",
+            CellType.Gate => "gate",
+            CellType.Grate => "grate",
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 

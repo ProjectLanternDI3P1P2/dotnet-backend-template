@@ -58,10 +58,10 @@ public class MoveHeroCommandHandlerTests
     [Fact]
     public async Task Handle_TowardsAWall_ThrowsAndLeavesTheHeroInPlace()
     {
-        // Arrange: walk to the west wall of the start room, one row above its centre.
-        Room start = _dungeon.Floors[0].Rooms[0];
+        // Arrange: walk west from one row above the arrival until something blocks the way.
+        DungeonFloor floor = _dungeon.Floors[0];
         _run.MoveHero(Direction.North, _dungeon);
-        while (_run.HeroPosition.X > start.Interior.X)
+        while (floor.IsWalkable(_run.HeroPosition.Step(Direction.West)))
         {
             _run.MoveHero(Direction.West, _dungeon);
         }

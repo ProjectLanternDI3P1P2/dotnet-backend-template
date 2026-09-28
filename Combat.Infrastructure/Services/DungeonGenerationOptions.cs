@@ -12,6 +12,8 @@ public sealed class DungeonGenerationOptions
 
     public int RoomCount { get; init; } = DungeonSettings.DefaultRoomCount;
 
-    /// <summary>1 by default; more floors split the rooms and link them with stairs.</summary>
-    public int FloorCount { get; init; } = 1;
+    /// <summary>
+    /// 4 by default: 10 rooms per floor, each floor ending with a boss that guards the stairs.
+    /// </summary>
+    public int FloorCount { get; init; } = DungeonSettings.DefaultFloorCount;
 }
