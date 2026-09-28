@@ -7,8 +7,14 @@ namespace Combat.Domain.ValueObjects;
 /// </summary>
 public sealed record DungeonSettings
 {
-    /// <summary>Business rule of US-DUNGEON-01: a dungeon contains exactly 40 rooms.</summary>
+    /// <summary>
+    /// Business rule of US-DUNGEON-01: a dungeon contains exactly 40 rooms. The stairs rooms,
+    /// which only hold the way down, are not counted.
+    /// </summary>
     public const int DefaultRoomCount = 40;
+
+    /// <summary>Four floors of ten rooms, each ending with a boss.</summary>
+    public const int DefaultFloorCount = 4;
 
     public const int MinimumRoomsPerFloor = 8;
     public const int MaximumRoomsPerFloor = 80;
@@ -26,7 +32,7 @@ public sealed record DungeonSettings
         FloorCount = floorCount;
     }
 
-    public static DungeonSettings Default { get; } = new(DefaultRoomCount, 1);
+    public static DungeonSettings Default { get; } = new(DefaultRoomCount, DefaultFloorCount);
 
     public int RoomCount { get; }
 
@@ -34,7 +40,7 @@ public sealed record DungeonSettings
 
     /// <summary>
     /// Splits the rooms as evenly as possible, the first floors taking the remainder:
-    /// 40 rooms on 3 floors gives 14, 13 and 13.
+    /// 40 rooms on 4 floors gives 10 each, 40 rooms on 3 floors gives 14, 13 and 13.
     /// </summary>
     public int RoomCountForFloor(int floorIndex)
     {

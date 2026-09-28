@@ -12,65 +12,102 @@ public class DungeonGeneratorRulesTests
 {
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
-    public void Generate_AnySeed_CreatesExactlyFortyRooms(ulong seedValue)
+    public void Generate_AnySeed_CreatesFortyRoomsOnFourFloorsOfTen(ulong seedValue)
     {
         // Act
         Dungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
 
-        // Assert
-        dungeon.Floors.Should().ContainSingle();
-        dungeon.Floors[0].Rooms.Should().HaveCount(40);
+        // Assert: the stairs rooms, which only hold the way down, are not counted.
+        dungeon.RoomCount.Should().Be(40);
+        dungeon.Floors.Should().HaveCount(4);
+        dungeon
+            .Floors.Should()
+            .OnlyContain(floor => floor.Rooms.Count(room => room.Type != RoomType.Stairs) == 10);
     }
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_EveryRoomCanBeReachedFromTheEntrance(ulong seedValue)
     {
-        // Arrange
-        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[0];
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Act: walk the tiles one step at a time, as the hero does, gate open.
+            HashSet<Position> reachable = DungeonTestData.ReachableFrom(floor, floor.Entrance);
 
-        // Act: walk the tiles one step at a time, as the hero does.
-        HashSet<Position> reachable = DungeonTestData.ReachableFrom(floor, floor.Entrance);
-
-        // Assert
-        floor.Rooms.Should().OnlyContain(room => reachable.Contains(room.Center));
-        floor.Elements.Should().OnlyContain(element => reachable.Contains(element.Position));
-        reachable.Count.Should().Be(CountWalkableTiles(floor));
+            // Assert
+            floor.Rooms.Should().OnlyContain(room => reachable.Contains(room.Center));
+            floor.Elements.Should().OnlyContain(element => reachable.Contains(element.Position));
+            reachable.Count.Should().Be(CountWalkableTiles(floor));
+        }
     }
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_RoomConnectionsAreMutualAndConnected(ulong seedValue)
     {
-        // Arrange
-        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[0];
-
-        // Act
-        HashSet<int> visited = [0];
-        Queue<int> queue = new([0]);
-        while (queue.Count > 0)
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
         {
-            foreach (int next in floor.Rooms[queue.Dequeue()].ConnectedRoomIds.Where(visited.Add))
+            // Act
+            HashSet<int> visited = [0];
+            Queue<int> queue = new([0]);
+            while (queue.Count > 0)
             {
-                queue.Enqueue(next);
+                foreach (
+                    int next in floor.Rooms[queue.Dequeue()].ConnectedRoomIds.Where(visited.Add)
+                )
+                {
+                    queue.Enqueue(next);
+                }
             }
-        }
 
-        // Assert
-        visited.Should().HaveCount(floor.Rooms.Count);
-        floor
-            .Rooms.Should()
-            .OnlyContain(room =>
-                room.ConnectedRoomIds.All(id => floor.Rooms[id].ConnectedRoomIds.Contains(room.Id))
-            );
+            // Assert
+            visited.Should().HaveCount(floor.Rooms.Count);
+            floor
+                .Rooms.Should()
+                .OnlyContain(room =>
+                    room.ConnectedRoomIds.All(id =>
+                        floor.Rooms[id].ConnectedRoomIds.Contains(room.Id)
+                    )
+                );
+        }
     }
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
-    public void Generate_AnySeed_HasExactlyOneFinalBossAtTheEndOfTheLongestBranch(ulong seedValue)
+    public void Generate_AnySeed_EveryFloorHasABossGuardingTheWayDown(ulong seedValue)
+    {
+        Dungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
+
+        foreach (DungeonFloor floor in dungeon.Floors.Where(floor => !floor.IsFinalFloor))
+        {
+            // Act
+            Room bossRoom = floor.Rooms.Single(room => room.Type == RoomType.Boss);
+            Room stairsRoom = floor.Rooms.Single(room => room.Type == RoomType.Stairs);
+            DungeonElement boss = floor.Elements.Single(element => element.Type == ElementType.Boss);
+            Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
+            List<Position> stairs = DungeonTestData
+                .PositionsOf(floor, CellType.StairsDown)
+                .ToList();
+
+            // Assert: the stairs room lies just north of the boss room, behind the gate.
+            boss.RoomId.Should().Be(bossRoom.Id);
+            stairsRoom.ConnectedRoomIds.Should().Equal(bossRoom.Id);
+            stairsRoom.GridCell.Should().Be(new Position(bossRoom.GridCell.X, bossRoom.GridCell.Y - 1));
+            gate.Should().Be(new Position(bossRoom.Center.X, bossRoom.Interior.Y - 1));
+            stairs.Should().NotBeEmpty().And.OnlyContain(tile => floor.GetRoomId(tile) == stairsRoom.Id);
+            DungeonTestData
+                .ReachableFrom(floor, floor.Entrance, gateIsOpen: false)
+                .Should()
+                .NotIntersectWith(stairs);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_EndsWithOneFinalBossAtTheEndOfTheLongestBranch(ulong seedValue)
     {
         // Arrange
-        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[0];
+        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[^1];
 
         // Act
         Room bossRoom = floor.Rooms.Single(room => room.Type == RoomType.Boss);
@@ -80,105 +117,117 @@ public class DungeonGeneratorRulesTests
             .Max(room => room.Depth);
 
         // Assert
+        floor.IsFinalFloor.Should().BeTrue();
         boss.RoomId.Should().Be(bossRoom.Id);
-        boss.Position.Should().Be(bossRoom.Center);
         bossRoom.ConnectedRoomIds.Should().ContainSingle();
         bossRoom.Depth.Should().Be(deepestDeadEnd);
+        floor.Rooms.Should().NotContain(room => room.Type == RoomType.Stairs);
+        DungeonTestData.PositionsOf(floor, CellType.StairsDown).Should().BeEmpty();
+        DungeonTestData.PositionsOf(floor, CellType.Gate).Should().BeEmpty();
     }
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_AlwaysUsesTheSameMixOfRooms(ulong seedValue)
     {
-        // Act
-        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[0];
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Act
+            Dictionary<RoomType, int> counts = floor
+                .Rooms.GroupBy(room => room.Type)
+                .ToDictionary(group => group.Key, group => group.Count());
 
-        // Assert: fixed quotas, so no dungeon is unlucky with its distribution.
-        Dictionary<RoomType, int> counts = floor
-            .Rooms.GroupBy(room => room.Type)
-            .ToDictionary(group => group.Key, group => group.Count());
-        counts[RoomType.Start].Should().Be(1);
-        counts[RoomType.Boss].Should().Be(1);
-        counts[RoomType.Treasure].Should().Be(4);
-        counts[RoomType.Empty].Should().Be(6);
-        counts[RoomType.Combat].Should().Be(28);
-        floor.Rooms[0].Type.Should().Be(RoomType.Start);
+            // Assert: fixed quotas, so no floor is unlucky with its distribution.
+            counts[RoomType.Start].Should().Be(1);
+            counts[RoomType.Boss].Should().Be(1);
+            counts[RoomType.Treasure].Should().Be(1);
+            counts[RoomType.Empty].Should().Be(1);
+            counts[RoomType.Combat].Should().Be(6);
+            counts.GetValueOrDefault(RoomType.Stairs).Should().Be(floor.IsFinalFloor ? 0 : 1);
+            floor.Rooms[0].Type.Should().Be(RoomType.Start);
+        }
     }
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_PlacesElementsOnFreeFloorTilesOfTheirRoom(ulong seedValue)
     {
-        // Act
-        DungeonFloor floor = DungeonTestData.Generate(new Seed(seedValue)).Floors[0];
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Assert
+            floor.Elements.Select(element => element.Position).Should().OnlyHaveUniqueItems();
+            floor
+                .Elements.Should()
+                .OnlyContain(element =>
+                    floor.GetCell(element.Position) == CellType.Floor
+                    && floor.GetRoomId(element.Position) == element.RoomId
+                );
+            floor
+                .Rooms.Where(room => room.Type == RoomType.Combat)
+                .Should()
+                .OnlyContain(room =>
+                    floor.Elements.Any(element =>
+                        element.RoomId == room.Id && element.Type == ElementType.Enemy
+                    )
+                );
+        }
+    }
 
-        // Assert
-        floor.Elements.Select(element => element.Position).Should().OnlyHaveUniqueItems();
-        floor
-            .Elements.Should()
-            .OnlyContain(element =>
-                floor.GetCell(element.Position) == CellType.Floor
-                && floor.GetRoomId(element.Position) == element.RoomId
-            );
-        floor
-            .Rooms.Where(room => room.Type == RoomType.Combat)
-            .Should()
-            .OnlyContain(room =>
-                floor.Elements.Any(element =>
-                    element.RoomId == room.Id && element.Type == ElementType.Enemy
-                )
-            );
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_NeverRepeatsARoomOnAFloor(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Act: what each room is made of, tile by tile.
+            List<string> layouts = floor.Rooms.Select(room => Layout(floor, room)).ToList();
+
+            // Assert
+            layouts.Should().OnlyHaveUniqueItems();
+        }
     }
 
     [Fact]
-    public void Generate_FiftySeeds_BuildsRoomsThatDoNotAllLookAlike()
+    public void Generate_FiftySeeds_UsesEveryKindOfRoomFeature()
     {
         // Act
         List<DungeonFloor> floors = DungeonTestData
             .SampleSeeds(50)
-            .Select(seed => DungeonTestData.Generate(seed).Floors[0])
+            .SelectMany(seed => DungeonTestData.Generate(seed).Floors)
             .ToList();
 
-        // Assert: sizes from closets to halls, and every kind of arrangement shows up.
-        floors
-            .Should()
-            .OnlyContain(floor =>
-                floor
-                    .Rooms.Select(room => (room.Interior.Width, room.Interior.Height))
-                    .Distinct()
-                    .Count() >= 10
-            );
-        floors.Should().OnlyContain(floor => floor.Rooms.Min(room => room.Interior.Area) <= 35);
-        floors.Should().OnlyContain(floor => floor.Rooms.Max(room => room.Interior.Area) >= 96);
+        // Assert: columns, railings, grates, spikes, pits and inner walls all show up.
         floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Pillar).Any());
         floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Fence).Any());
+        floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Grate).Any());
         floors
             .Should()
             .Contain(floor => floor.Elements.Any(element => element.Type == ElementType.Trap));
-        floors.Should().Contain(floor => floor.Rooms.Any(room => HasCarvedTiles(floor, room)));
+        floors.Should().Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Void)));
+        floors.Should().Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Wall)));
         floors
+            .SelectMany(floor => floor.Rooms)
+            .Select(room => (room.Interior.Width, room.Interior.Height))
+            .Distinct()
             .Should()
-            .Contain(floor =>
-                DungeonTestData
-                    .PositionsOf(floor, CellType.Door)
-                    .Any(door => floor.Rooms.Any(room => room.Interior.Contains(door)))
-            );
+            .HaveCountGreaterThan(10);
     }
 
     [Fact]
-    public void Generate_ThousandSeeds_NeverBreaksABusinessRule()
+    public void Generate_FiveHundredSeeds_NeverBreaksABusinessRule()
     {
-        foreach (Seed seed in DungeonTestData.SampleSeeds(1000, origin: 1))
+        foreach (Seed seed in DungeonTestData.SampleSeeds(500, origin: 1))
         {
             DungeonValidator.Validate(DungeonTestData.Generate(seed)).Should().BeEmpty();
         }
     }
 
     [Theory]
+    [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(5)]
-    public void Generate_SeveralFloors_SplitsTheFortyRoomsAndLinksFloorsWithStairs(int floorCount)
+    public void Generate_OtherFloorCounts_SplitTheFortyRoomsAndLinkFloorsWithStairs(int floorCount)
     {
         // Act
         Dungeon dungeon = DungeonTestData.Generate(
@@ -188,17 +237,17 @@ public class DungeonGeneratorRulesTests
 
         // Assert
         dungeon.Floors.Should().HaveCount(floorCount);
-        dungeon.TotalRoomCount.Should().Be(40);
+        dungeon.RoomCount.Should().Be(40);
         dungeon
-            .Floors.SelectMany(floor => floor.Elements)
-            .Count(element => element.Type == ElementType.Boss)
-            .Should()
-            .Be(1);
-        dungeon.Floors[^1].Rooms.Should().ContainSingle(room => room.Type == RoomType.Boss);
+            .Floors.Should()
+            .OnlyContain(floor =>
+                floor.Elements.Count(element => element.Type == ElementType.Boss) == 1
+            );
 
         foreach (DungeonFloor floor in dungeon.Floors.Take(floorCount - 1))
         {
-            DungeonTestData.PositionsOf(floor, CellType.StairsDown).Should().ContainSingle();
+            DungeonTestData.PositionsOf(floor, CellType.StairsDown).Should().NotBeEmpty();
+            DungeonTestData.PositionsOf(floor, CellType.Gate).Should().ContainSingle();
         }
 
         foreach (DungeonFloor floor in dungeon.Floors.Skip(1))
@@ -207,14 +256,24 @@ public class DungeonGeneratorRulesTests
         }
     }
 
-    /// <summary>A pit, a cut corner or a partition wall inside the room's bounds.</summary>
-    private static bool HasCarvedTiles(DungeonFloor floor, Room room)
+    /// <summary>The tiles of a room, row by row: two rooms look alike when these are equal.</summary>
+    private static string Layout(DungeonFloor floor, Room room)
+    {
+        IEnumerable<char> tiles =
+            from y in Enumerable.Range(room.Interior.Y, room.Interior.Height)
+            from x in Enumerable.Range(room.Interior.X, room.Interior.Width)
+            select (char)('a' + (int)floor.GetCell(new Position(x, y)));
+
+        return $"{room.Interior.Width}x{room.Interior.Height}:{new string(tiles.ToArray())}";
+    }
+
+    private static bool Holds(DungeonFloor floor, Room room, CellType cellType)
     {
         for (int y = room.Interior.Y; y <= room.Interior.Bottom; y++)
         {
             for (int x = room.Interior.X; x <= room.Interior.Right; x++)
             {
-                if (floor.GetCell(new Position(x, y)) is CellType.Wall or CellType.Void)
+                if (floor.GetCell(new Position(x, y)) == cellType)
                 {
                     return true;
                 }

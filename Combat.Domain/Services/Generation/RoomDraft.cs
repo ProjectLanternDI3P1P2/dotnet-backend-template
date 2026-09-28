@@ -8,44 +8,30 @@ internal sealed class RoomDraft(int id, Position gridCell)
 {
     public int Id { get; } = id;
 
-    public Position GridCell { get; } = gridCell;
+    /// <summary>Settable: the whole floor may be flipped so that the stairs room lies north.</summary>
+    public Position GridCell { get; set; } = gridCell;
 
     public List<int> Connections { get; } = [];
 
     public RoomType Type { get; set; } = RoomType.Combat;
 
-    public RoomLayout Layout { get; set; } = RoomLayout.Plain;
-
     public int Depth { get; set; }
+
+    public RoomTemplate Template { get; set; } = null!;
+
+    public bool IsMirrored { get; set; }
 
     public RoomBounds Interior { get; set; }
 
     public Position Center { get; set; }
 
+    /// <summary>The spots drawn in the template, in reading order, in floor coordinates.</summary>
+    public Dictionary<char, List<Position>> Spots { get; } = [];
+
     public bool IsDeadEnd => Connections.Count == 1;
-}
 
-/// <summary>How the inside of a room is arranged, on top of its size.</summary>
-internal enum RoomLayout
-{
-    /// <summary>A few scattered barrels and jars.</summary>
-    Plain,
-
-    /// <summary>Corners cut away: L-shaped, T-shaped or cross-shaped rooms.</summary>
-    Notched,
-
-    /// <summary>Walled pits on the sides of the room.</summary>
-    Pits,
-
-    /// <summary>A wall splits off a side room, reached through a door.</summary>
-    Partition,
-
-    /// <summary>Rows of pillars.</summary>
-    Colonnade,
-
-    /// <summary>The treasure stands behind a fence with a single opening.</summary>
-    Vault,
-
-    /// <summary>Barrels and jars piled in the corners.</summary>
-    Storage,
+    public List<Position> SpotsOf(char spot)
+    {
+        return Spots.TryGetValue(spot, out List<Position>? positions) ? positions : [];
+    }
 }

@@ -12,6 +12,11 @@ namespace Combat.Domain.Services.Generation;
 /// is no retry loop that could fail. A few extra doors are then added between neighbouring
 /// rooms to create loops, which cuts down on backtracking.
 /// </para>
+/// <para>
+/// The boss waits at the end of the longest branch. On every floor but the last, the stairs
+/// room is then added just north of the boss room, connected to it alone: the way down goes
+/// through the boss, and through the gate in the north wall of its room.
+/// </para>
 /// </summary>
 internal static class RoomGraphBuilder
 {
@@ -35,7 +40,11 @@ internal static class RoomGraphBuilder
     // East and south only, so that each pair of neighbouring rooms is considered once.
     private static readonly Position[] ForwardOffsets = [new(1, 0), new(0, 1)];
 
-    public static List<RoomDraft> Build(DeterministicRandom random, int roomCount, bool isFinalFloor)
+    public static List<RoomDraft> Build(
+        DeterministicRandom random,
+        int roomCount,
+        bool isFinalFloor
+    )
     {
         int[] roomIdByCell = new int[GridSize * GridSize];
         Array.Fill(roomIdByCell, NoRoom);
@@ -52,9 +61,25 @@ internal static class RoomGraphBuilder
         ComputeDepths(rooms);
 
         // Chosen after the loops, so that no shortcut can bring the boss closer to the start.
-        RoomDraft exit = FindExitRoom(rooms);
-        exit.Type = isFinalFloor ? RoomType.Boss : RoomType.Stairs;
-        AssignRoomTypes(random, rooms, exit);
+        RoomDraft boss = isFinalFloor ? FindExitRoom(rooms) : FindGuardedExit(rooms, roomIdByCell);
+        boss.Type = RoomType.Boss;
+
+        if (!isFinalFloor)
+        {
+            if (!IsFreeCell(roomIdByCell, North(boss.GridCell)))
+            {
+                // The boss room only has space to the south: mirror the floor top to bottom.
+                FlipVertically(rooms, roomIdByCell);
+            }
+
+            // Added after the loops: the boss room is its only neighbour.
+            RoomDraft stairs = AddRoom(rooms, roomIdByCell, North(boss.GridCell));
+            Connect(boss, stairs);
+            stairs.Type = RoomType.Stairs;
+            stairs.Depth = boss.Depth + 1;
+        }
+
+        AssignRoomTypes(random, rooms);
 
         return rooms;
     }
@@ -105,8 +130,8 @@ internal static class RoomGraphBuilder
     }
 
     /// <summary>
-    /// The farthest dead end from the start: the boss (or the stairs down) waits at the end of
-    /// the longest branch, behind a single door. Should the loops have left no dead end at all,
+    /// The farthest dead end from the start: the final boss waits at the end of the longest
+    /// branch, behind a single door. Should the loops have left no dead end at all,
     /// the farthest room is used.
     /// </summary>
     private static RoomDraft FindExitRoom(List<RoomDraft> rooms)
@@ -119,6 +144,48 @@ internal static class RoomGraphBuilder
 
         return candidates.OrderByDescending(room => room.Depth).ThenBy(room => room.Id).First();
     }
+
+    /// <summary>
+    /// Like <see cref="FindExitRoom"/>, among the rooms with a free cell to the north or to
+    /// the south, where the stairs room can go. There always is one: the northernmost room
+    /// other than the start has a free cell above it, unless the start room is alone at the
+    /// top, in which case the southernmost other room has a free cell below it. (Ten rooms
+    /// grown from the centre of a 13 x 13 grid never reach its edges on both sides.)
+    /// </summary>
+    private static RoomDraft FindGuardedExit(List<RoomDraft> rooms, int[] roomIdByCell)
+    {
+        bool HasRoomForStairs(RoomDraft room) =>
+            IsFreeCell(roomIdByCell, North(room.GridCell))
+            || IsFreeCell(roomIdByCell, South(room.GridCell));
+
+        return rooms
+            .Where(room => room.Id != 0 && HasRoomForStairs(room))
+            .OrderByDescending(room => room.IsDeadEnd)
+            .ThenByDescending(room => room.Depth)
+            .ThenBy(room => room.Id)
+            .First();
+    }
+
+    private static void FlipVertically(List<RoomDraft> rooms, int[] roomIdByCell)
+    {
+        Array.Fill(roomIdByCell, NoRoom);
+        foreach (RoomDraft room in rooms)
+        {
+            room.GridCell = new Position(room.GridCell.X, GridSize - 1 - room.GridCell.Y);
+            roomIdByCell[room.GridCell.Y * GridSize + room.GridCell.X] = room.Id;
+        }
+    }
+
+    /// <summary>Inside the grid and free: a room can be added there.</summary>
+    private static bool IsFreeCell(int[] roomIdByCell, Position cell)
+    {
+        bool inside = cell.X >= 0 && cell.Y >= 0 && cell.X < GridSize && cell.Y < GridSize;
+        return inside && roomIdByCell[cell.Y * GridSize + cell.X] == NoRoom;
+    }
+
+    private static Position North(Position cell) => new(cell.X, cell.Y - 1);
+
+    private static Position South(Position cell) => new(cell.X, cell.Y + 1);
 
     private static void AddLoops(DeterministicRandom random, List<RoomDraft> rooms, int[] roomIdByCell)
     {
@@ -141,17 +208,17 @@ internal static class RoomGraphBuilder
         }
     }
 
-    private static void AssignRoomTypes(
-        DeterministicRandom random,
-        List<RoomDraft> rooms,
-        RoomDraft exit
-    )
+    private static void AssignRoomTypes(DeterministicRandom random, List<RoomDraft> rooms)
     {
         rooms[0].Type = RoomType.Start;
 
         List<RoomDraft> deadEnds = [];
         List<RoomDraft> others = [];
-        foreach (RoomDraft room in rooms.Where(room => room.Id != 0 && room.Id != exit.Id))
+        foreach (
+            RoomDraft room in rooms.Where(room =>
+                room.Id != 0 && room.Type is not (RoomType.Boss or RoomType.Stairs)
+            )
+        )
         {
             (room.IsDeadEnd ? deadEnds : others).Add(room);
         }
@@ -161,8 +228,9 @@ internal static class RoomGraphBuilder
 
         // Fixed quotas rather than a probability per room: every dungeon gets the same mix,
         // only the placement changes. Treasure rewards exploring a dead end first.
-        int treasureCount = Math.Max(1, rooms.Count / TreasureRoomRatio);
-        int emptyCount = rooms.Count * EmptyRoomPercent / 100;
+        int countedRooms = rooms.Count(room => room.Type != RoomType.Stairs);
+        int treasureCount = Math.Max(1, countedRooms / TreasureRoomRatio);
+        int emptyCount = countedRooms * EmptyRoomPercent / 100;
 
         List<RoomDraft> treasureCandidates = [.. deadEnds, .. others];
         foreach (RoomDraft room in treasureCandidates.Take(treasureCount))

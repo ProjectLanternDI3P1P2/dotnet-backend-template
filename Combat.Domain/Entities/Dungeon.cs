@@ -31,5 +31,7 @@ public sealed class Dungeon
 
     public IReadOnlyList<DungeonFloor> Floors { get; }
 
-    public int TotalRoomCount => Floors.Sum(floor => floor.Rooms.Count);
+    /// <summary>The rooms of the dungeon, stairs rooms excluded (US-DUNGEON-01).</summary>
+    public int RoomCount =>
+        Floors.Sum(floor => floor.Rooms.Count(room => room.Type != Enums.RoomType.Stairs));
 }

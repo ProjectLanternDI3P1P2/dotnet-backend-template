@@ -8,6 +8,8 @@ namespace Combat.Domain.Enums;
 public enum ElementType
 {
     Enemy,
+
+    /// <summary>One per floor, in the boss room. The one of the last floor is the final boss.</summary>
     Boss,
     Item,
 

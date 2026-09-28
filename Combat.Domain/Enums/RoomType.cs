@@ -10,9 +10,15 @@ public enum RoomType
     /// <summary>A quiet room: no enemy, no loot. Gives the exploration some rhythm.</summary>
     Empty,
 
-    /// <summary>The final room of the last floor. Holds the final boss.</summary>
+    /// <summary>
+    /// The last room of every floor. Its boss guards the gate to the stairs room; on the last
+    /// floor, it is the final boss.
+    /// </summary>
     Boss,
 
-    /// <summary>The exit of a floor that is not the last one. Holds the stairs down.</summary>
+    /// <summary>
+    /// Behind the boss room of every floor but the last: holds the stairs down. Not counted
+    /// in the 40 rooms of a dungeon.
+    /// </summary>
     Stairs,
 }
