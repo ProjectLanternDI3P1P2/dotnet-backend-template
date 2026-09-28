@@ -1,4 +1,7 @@
+using Combat.Application.Ports;
 using Combat.Domain.Services;
+using Combat.Domain.Services.Generation;
+using Combat.Domain.ValueObjects;
 using Combat.Infrastructure.Grpc;
 using Combat.Infrastructure.Messaging;
 using Combat.Infrastructure.Persistence;
@@ -30,8 +33,31 @@ public static class InfrastructureServiceRegistration
             .AddTransient(typeof(IPipelineBehavior<,>), typeof(CommandTransactionBehavior<,>))
             .AddEfConnection()
             .AddRepositories()
+            .AddDungeonGeneration(configuration)
             .AddGrpcConfiguration(configuration)
             .AddMessaging(configuration);
+    }
+
+    private static IServiceCollection AddDungeonGeneration(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        DungeonGenerationOptions options =
+            configuration
+                .GetSection(DungeonGenerationOptions.SectionName)
+                .Get<DungeonGenerationOptions>() ?? new DungeonGenerationOptions();
+
+        // Built here so that an impossible configuration (0 floors, 3 rooms...) stops the
+        // service at startup instead of failing on the first exploration.
+        DungeonSettings settings = new(options.RoomCount, options.FloorCount);
+
+        return services
+            .AddSingleton(Options.Create(options))
+            .AddSingleton(settings)
+            .AddSingleton<DungeonGenerator>()
+            .AddSingleton<IDungeonProvider, CachedDungeonProvider>()
+            .AddSingleton<ISeedGenerator, CryptoSeedGenerator>();
     }
 
     private static IServiceCollection AddRepositories(this IServiceCollection services)

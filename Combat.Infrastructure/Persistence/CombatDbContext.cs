@@ -7,6 +7,8 @@ public class CombatDbContext(DbContextOptions<CombatDbContext> options) : DbCont
 {
     public virtual DbSet<Player> Players { get; set; }
 
+    public virtual DbSet<DungeonRun> DungeonRuns { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Applique toutes les configurations d'entités automatiquement
