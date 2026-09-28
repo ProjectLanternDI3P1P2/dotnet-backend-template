@@ -54,6 +54,8 @@ public class DungeonRunTests
     [Theory]
     [InlineData(CellType.Wall)]
     [InlineData(CellType.Obstacle)]
+    [InlineData(CellType.Pillar)]
+    [InlineData(CellType.Fence)]
     [InlineData(CellType.Void)]
     public void MoveHero_OntoABlockingTile_IsRejectedAndChangesNothing(CellType target)
     {
@@ -180,7 +182,9 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
         Position stairs = DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).Single();
 
-        foreach (Direction direction in DungeonTestData.FindPath(firstFloor, run.HeroPosition, stairs)!)
+        foreach (
+            Direction direction in DungeonTestData.FindPath(firstFloor, run.HeroPosition, stairs)!
+        )
         {
             run.MoveHero(direction, dungeon);
         }

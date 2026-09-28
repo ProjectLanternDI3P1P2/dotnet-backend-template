@@ -38,16 +38,38 @@ de flottant.
 4. **Types de salles par quotas**, pas par probabilité : pour 40 salles,
    1 départ, 1 boss, 4 trésors (en priorité dans les culs-de-sac), 6 salles vides
    et 28 salles de combat. Aucun donjon n'est « malchanceux » dans sa répartition.
-5. **Tuiles** (`FloorBuilder`). Chaque case fait 15 × 11 tuiles. L'intérieur
+5. **Tuiles** (`FloorBuilder`). Chaque case fait 19 × 15 tuiles. L'intérieur
    d'une salle couvre toujours la ligne et la colonne centrales de sa case :
    le couloir entre deux voisines est donc une ligne droite qui ne peut ni
-   rater une porte ni traverser une autre salle. Les murs sont posés autour de
-   tout ce qui est praticable.
-6. **Contenu.** Les obstacles (tonneaux, jarres) ne sont jamais posés sur la
+   rater une porte ni traverser une autre salle. Les tailles varient
+   franchement : 30 % de petites salles (5–7 × 4–5), 45 % de moyennes
+   (8–11 × 5–6), 25 % de grandes (12–15 × 7–8) ; le boss a toujours une grande
+   salle (15 × 8). Une salle qui n'a de voisins que d'un côté est poussée vers
+   eux : les couloirs restent courts.
+6. **Aménagement** (`RoomLayouts`). Chaque salle reçoit une disposition, pour
+   qu'aucune ne ressemble à la précédente :
+
+   | Disposition | Salles | Ce qui est creusé ou posé |
+   | --- | --- | --- |
+   | Simple | départ, petites salles | rien, un peu de mobilier |
+   | Échancrée | moyennes et grandes | 1, 2 ou 4 coins retirés (salles en L ou en croix) |
+   | Fosses | grandes | 1 ou 2 trous dans le sol, entourés de murs |
+   | Cloisonnée | grandes | un mur intérieur percé d'une porte : deux sous-pièces |
+   | Colonnade | boss, escalier, grandes | deux rangées de colonnes |
+   | Cage | trésor | grille de fer autour du coffre, ouverte au sud |
+   | Réserve | moyennes | tonneaux et jarres entassés dans les coins |
+
+   Chaque modification est annulée si elle rend la salle mal formée : le
+   centre et chaque entrée doivent rester reliés par l'intérieur de la salle.
+   Les murs sont posés ensuite autour de tout ce qui est praticable, fosses
+   comprises.
+7. **Contenu.** Les obstacles (tonneaux, jarres) ne sont jamais posés sur la
    croix centrale, et chaque pose est vérifiée par un parcours en largeur :
    aucun obstacle ne peut isoler une partie de salle. Les ennemis sont plus
-   nombreux quand on s'éloigne du départ (1 à 4 par salle).
-7. **Validation** (`DungeonValidator`). Le donjon généré est revérifié :
+   nombreux quand on s'éloigne du départ (1 à 4 par salle). Un tiers des
+   salles de combat a une ligne de 2 à 4 pièges à pics (élément `trap`,
+   franchissable : c'est au service Combat d'en appliquer les dégâts).
+8. **Validation** (`DungeonValidator`). Le donjon généré est revérifié :
    nombre de salles, un seul boss dans la salle finale, toute tuile praticable
    atteignable depuis l'entrée, éléments sur des tuiles libres de leur salle.
    Une violation lève une exception plutôt que de livrer un donjon cassé.
@@ -73,9 +95,12 @@ de flottant.
   Un test *golden master* échoue dès qu'une modification change le donjon
   d'une seed existante : il faut alors incrémenter la version (et garder
   l'ancien algorithme si les anciennes runs doivent rester rejouables).
+  Version actuelle : **2** (salles variées, aménagements, colonnes, grilles,
+  pièges). Une run créée en version 1 répond 409 : il faut lancer une
+  nouvelle exploration.
 - **Seed inconnue.** `GET /dungeons/{seed}/...` répond 404 pour une seed
   qu'aucune run n'a utilisée, et 422 pour une seed mal formée. Le donjon
-  n'est jamais stocké : il est régénéré à la demande (environ 1,5 ms) et gardé
+  n'est jamais stocké : il est régénéré à la demande (environ 2,3 ms) et gardé
   en cache mémoire.
 - **Rejouer.** `POST /dungeon-runs` avec une `seed` crée une nouvelle run sur
   le même donjon, avec les réglages et la version de la run d'origine.
@@ -86,12 +111,16 @@ de flottant.
 | --- | --- | --- |
 | `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed? }` | Crée une run et génère son donjon. Idempotent par `runId`. | 201, 409, 422 |
 | `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros. | 200, 404 |
-| `POST /api/v1/dungeon-runs/{runId}/moves` `{ direction }` | Une tuile, un tour. Murs, obstacles, vide et hors carte refusés. | 200, 404, 409, 422 |
+| `POST /api/v1/dungeon-runs/{runId}/moves` `{ direction }` | Une tuile, un tour. Murs, obstacles, colonnes, grilles, vide et hors carte refusés. | 200, 404, 409, 422 |
 | `POST /api/v1/dungeon-runs/{runId}/descents` | Prend l'escalier sous le héros. | 200, 404, 409 |
 | `GET /api/v1/dungeons/{seed}/map?floor=0` | Étage complet : `rows` (1 caractère par tuile, décodé par `legend`), salles, éléments. | 200, 404, 422 |
 | `GET /api/v1/dungeons/{seed}/cell?x=&y=&floor=0` | Type d'une tuile, sa salle et ses éléments (Combat, Inventory). | 200, 404, 422 |
 
-Un étage de 40 salles pèse environ 25 Ko en JSON (2,7 Ko compressé), contre
+Types de tuiles (`legend`) : `void`, `floor`, `wall`, `door`, `obstacle`,
+`pillar`, `fence`, `stairsDown`, `stairsUp`. Seuls `floor`, `door` et les
+escaliers sont praticables. Types d'éléments : `enemy`, `boss`, `item`, `trap`.
+
+Un étage de 40 salles pèse environ 40 Ko en JSON (3 Ko compressé), contre
 environ 1 Mo avec un objet JSON par tuile. Les réponses `map` et `cell` sont
 immuables pour une seed donnée : elles portent
 `Cache-Control: public, max-age=31536000, immutable`.
@@ -122,9 +151,12 @@ existantes gardent leurs réglages.
 
 ## 6. Vérifications effectuées
 
-- 20 000 seeds générées : toutes valides, toutes différentes, 1,5 ms par donjon.
-- 406 cas de tests du domaine exécutés (déterminisme, règles de l'US-01,
-  déplacements, escaliers, PRNG contre les valeurs de référence).
+- 20 000 seeds générées : toutes valides, toutes différentes, 2,3 ms par
+  donjon. En moyenne par donjon : 88 tuiles creusées (échancrures, fosses,
+  cloisons), 28 colonnes, 28 grilles, 21 pièges.
+- 409 cas de tests du domaine exécutés (déterminisme, règles de l'US-01,
+  variété des salles, déplacements, escaliers, PRNG contre les valeurs de
+  référence).
 - Parcours complet dans le navigateur d'un donjon à 3 étages jusqu'au boss :
   190 tours, positions client et serveur identiques à chaque pas.
 
@@ -135,5 +167,5 @@ existantes gardent leurs réglages.
 - Événement `DungeonRunEnded` à la victoire, défaite ou abandon.
 - Renommer la solution `Combat.*` en `Dungeon.*` dans une PR dédiée : le dépôt
   vient du template et porte encore l'ancien nom.
-- Pièges : le pack contient une animation de pics (`03.gif`) prête à devenir
-  un type d'élément.
+- Pièges : définir avec l'équipe Combat l'effet d'un `trap` (dégâts,
+  désamorçage) ; le Dungeon ne fait que les placer.

@@ -131,6 +131,41 @@ public class DungeonGeneratorRulesTests
     }
 
     [Fact]
+    public void Generate_FiftySeeds_BuildsRoomsThatDoNotAllLookAlike()
+    {
+        // Act
+        List<DungeonFloor> floors = DungeonTestData
+            .SampleSeeds(50)
+            .Select(seed => DungeonTestData.Generate(seed).Floors[0])
+            .ToList();
+
+        // Assert: sizes from closets to halls, and every kind of arrangement shows up.
+        floors
+            .Should()
+            .OnlyContain(floor =>
+                floor
+                    .Rooms.Select(room => (room.Interior.Width, room.Interior.Height))
+                    .Distinct()
+                    .Count() >= 10
+            );
+        floors.Should().OnlyContain(floor => floor.Rooms.Min(room => room.Interior.Area) <= 35);
+        floors.Should().OnlyContain(floor => floor.Rooms.Max(room => room.Interior.Area) >= 96);
+        floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Pillar).Any());
+        floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Fence).Any());
+        floors
+            .Should()
+            .Contain(floor => floor.Elements.Any(element => element.Type == ElementType.Trap));
+        floors.Should().Contain(floor => floor.Rooms.Any(room => HasCarvedTiles(floor, room)));
+        floors
+            .Should()
+            .Contain(floor =>
+                DungeonTestData
+                    .PositionsOf(floor, CellType.Door)
+                    .Any(door => floor.Rooms.Any(room => room.Interior.Contains(door)))
+            );
+    }
+
+    [Fact]
     public void Generate_ThousandSeeds_NeverBreaksABusinessRule()
     {
         foreach (Seed seed in DungeonTestData.SampleSeeds(1000, origin: 1))
@@ -170,6 +205,23 @@ public class DungeonGeneratorRulesTests
         {
             floor.GetCell(floor.Entrance).Should().Be(CellType.StairsUp);
         }
+    }
+
+    /// <summary>A pit, a cut corner or a partition wall inside the room's bounds.</summary>
+    private static bool HasCarvedTiles(DungeonFloor floor, Room room)
+    {
+        for (int y = room.Interior.Y; y <= room.Interior.Bottom; y++)
+        {
+            for (int x = room.Interior.X; x <= room.Interior.Right; x++)
+            {
+                if (floor.GetCell(new Position(x, y)) is CellType.Wall or CellType.Void)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static int CountWalkableTiles(DungeonFloor floor)
