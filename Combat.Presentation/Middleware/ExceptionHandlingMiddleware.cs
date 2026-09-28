@@ -1,5 +1,7 @@
+using Combat.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ILogger = Serilog.ILogger;
 
 namespace Combat.Presentation.Middleware;
@@ -23,6 +25,20 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
             logger.Warning(exception, "Validation error occurred");
             await HandleValidationExceptionAsync(context, exception);
         }
+        catch (DomainException exception)
+        {
+            logger.Warning(exception, "Business rule refused the operation");
+            await HandleConflictAsync(context, "Operation refused", exception.Message);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            logger.Warning(exception, "Concurrent update detected");
+            await HandleConflictAsync(
+                context,
+                "Concurrent update",
+                "The resource was modified by another request. Reload it and try again."
+            );
+        }
         catch (Exception exception)
         {
             logger.Error(exception, "Unhandled exception occurred");
@@ -45,6 +61,22 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         };
 
         context.Response.StatusCode = StatusCodes.Status404NotFound;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
+    }
+
+    private static async Task HandleConflictAsync(HttpContext context, string title, string detail)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://httpstatuses.com/409",
+            Title = title,
+            Detail = detail,
+            Status = StatusCodes.Status409Conflict,
+            Instance = context.Request.Path,
+        };
+
+        context.Response.StatusCode = StatusCodes.Status409Conflict;
         context.Response.ContentType = "application/problem+json";
         await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
     }
