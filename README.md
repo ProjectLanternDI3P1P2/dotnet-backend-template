@@ -31,6 +31,15 @@ dotnet test --solution Combat.Presentation.slnx
 dotnet run --project Combat.Presentation/Combat.Presentation.csproj
 ```
 
+## Dungeon generation
+
+Dungeons are generated from a seed by `Combat.Domain/Services/Generation`, with a
+versioned deterministic PRNG (`Combat.Domain/Services/Randomness`). The algorithm,
+its guarantees, the seed rules and the HTTP contract are described in
+[docs/architecture/GENERATION_DONJON.fr.md](docs/architecture/GENERATION_DONJON.fr.md).
+The shape of new dungeons is configured under `Dungeon:Generation`
+(`RoomCount`, `FloorCount`).
+
 ## Internal gRPC contract
 
 `Combat.Contracts` owns the versioned `combat_player_v1.proto` contract and the
