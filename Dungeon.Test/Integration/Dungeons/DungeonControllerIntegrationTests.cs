@@ -49,6 +49,31 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
         second!.Seed.Should().NotBe(first!.Seed);
     }
 
+    [Theory]
+    [InlineData("br")]
+    [InlineData("gzip")]
+    public async Task GetMap_ClientAcceptsCompression_ReturnsACompressedMap(string encoding)
+    {
+        // Arrange
+        string seed = await CreateRunAndGetSeedAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/dungeons/{seed}/map");
+        request.Headers.AcceptEncoding.ParseAdd(encoding);
+
+        // Act
+        HttpResponseMessage response = await fixture.HttpClient.SendAsync(
+            request,
+            TestContext.Current.CancellationToken
+        );
+        byte[] body = await response.Content.ReadAsByteArrayAsync(
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentEncoding.Should().Equal(encoding);
+        body.Length.Should().BeLessThan(4 * 1024);
+    }
+
     [Fact]
     public async Task GetMap_KnownSeedRequestedTwice_ReturnsTheSameImmutableMap()
     {

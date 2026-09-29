@@ -7,6 +7,8 @@ Vocabulary is defined in [CONTEXT.md](./CONTEXT.md). Shared technical choices ar
 recorded in [BACKEND_TECHNICAL_DECISIONS.md](./BACKEND_TECHNICAL_DECISIONS.md),
 and the decisions behind this repository's own shape in [docs/adr](./docs/adr).
 
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=ProjectLanternDI3P1P2_dungeon-backend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ProjectLanternDI3P1P2_dungeon-backend)
+
 ## Structure
 
 ```text

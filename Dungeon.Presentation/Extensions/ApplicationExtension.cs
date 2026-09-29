@@ -7,6 +7,9 @@ public static class ApplicationExtension
 {
     public static WebApplication ConfigureStart(this WebApplication app)
     {
+        // First, so that every response, error responses included, can be compressed.
+        app.UseResponseCompression();
+
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         if (!app.Environment.IsDevelopment())
