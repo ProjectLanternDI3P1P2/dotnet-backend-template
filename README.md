@@ -10,12 +10,12 @@ and the decisions behind this repository's own shape in [docs/adr](./docs/adr).
 ## Structure
 
 ```text
-Combat.Domain/          entities, enums, domain services, repository interfaces
-Combat.Application/     commands, queries, handlers, validators, pipeline behaviours
-Combat.Infrastructure/  EF Core, repository implementations, external services
-Combat.Presentation/    HTTP API: controllers, DTOs, middleware
-Combat.Contracts/       owned Protobuf contracts and generated gRPC client/server types
-Combat.Test/            xUnit tests for all of the above
+Dungeon.Domain/          entities, enums, domain services, repository interfaces
+Dungeon.Application/     commands, queries, handlers, validators, pipeline behaviours
+Dungeon.Infrastructure/  EF Core, repository implementations, external services
+Dungeon.Presentation/    HTTP API: controllers, DTOs, middleware
+Dungeon.Contracts/       owned Protobuf contracts and generated gRPC client/server types
+Dungeon.Test/            xUnit tests for all of the above
 ```
 
 `Presentation` is the Clean Architecture layer name for the HTTP API. There is no
@@ -25,16 +25,16 @@ user interface.
 
 ```powershell
 dotnet tool restore
-dotnet restore Combat.Presentation.slnx
-dotnet build Combat.Presentation.slnx
-dotnet test --solution Combat.Presentation.slnx
-dotnet run --project Combat.Presentation/Combat.Presentation.csproj
+dotnet restore Dungeon.Presentation.slnx
+dotnet build Dungeon.Presentation.slnx
+dotnet test --solution Dungeon.Presentation.slnx
+dotnet run --project Dungeon.Presentation/Dungeon.Presentation.csproj
 ```
 
 ## Dungeon generation
 
-Dungeons are generated from a seed by `Combat.Domain/Services/Generation`, with a
-versioned deterministic PRNG (`Combat.Domain/Services/Randomness`). The algorithm,
+Dungeons are generated from a seed by `Dungeon.Domain/Services/Generation`, with a
+versioned deterministic PRNG (`Dungeon.Domain/Services/Randomness`). The algorithm,
 its guarantees, the seed rules and the HTTP contract are described in
 [docs/architecture/GENERATION_DONJON.fr.md](docs/architecture/GENERATION_DONJON.fr.md).
 The shape of new dungeons is configured under `Dungeon:Generation`
@@ -42,11 +42,11 @@ The shape of new dungeons is configured under `Dungeon:Generation`
 
 ## Internal gRPC contract
 
-`Combat.Contracts` owns the versioned `combat_player_v1.proto` contract and the
+`Dungeon.Contracts` owns the versioned `dungeon_player_v1.proto` contract and the
 generated C# gRPC types. It is referenced locally by the server projects; it never
 pulls this service's Domain or Application types into the wire contract.
 
-The template exposes `CombatPlayerService/GetPlayer` on its internal gRPC endpoint.
+The template exposes `DungeonPlayerService/GetPlayer` on its internal gRPC endpoint.
 The REST API remains the client-facing interface. Locally, gRPC listens on
 `http://localhost:8081`; Docker binds it only to loopback. In Kubernetes, expose
 that port through an internal-only Service, never through the ingress.
@@ -60,14 +60,14 @@ Handlers depend on the `Application/Ports/IPlayerClient` port and its applicatio
 model, never on Protobuf or gRPC types. The adapter uses the generated typed client,
 maps its response, and applies the configurable `Grpc:Player:TimeoutSeconds` deadline.
 
-`Combat.Contracts` has an independent release line. A change outside
-`Combat.Contracts/` never releases the package. When a contract release is made,
+`Dungeon.Contracts` has an independent release line. A change outside
+`Dungeon.Contracts/` never releases the package. When a contract release is made,
 release-please creates a `contracts-vN.0.0` tag and `publish-contracts.yaml`
 publishes the matching NuGet package to GitHub Packages. The contract number used
 by consumers is therefore V1, V2, V3, and so on; minor and patch contract package
 versions are deliberately never generated. A consuming repository configures its
 NuGet source as `https://nuget.pkg.github.com/<organisation>/index.json` and pins a
-released `Combat.Contracts` version.
+released `Dungeon.Contracts` version.
 
 The package page appears after the first release. To let a consuming repository's
 GitHub Actions workflow restore the package without a personal token, grant that
@@ -84,7 +84,7 @@ docker compose up -d --build
 ```
 
 The API listens on <http://localhost:8080>, Postgres on host port 5433, and the
-RabbitMQ management UI on <http://localhost:15672> (`combat` / `combat`). Because
+RabbitMQ management UI on <http://localhost:15672> (`dungeon` / `dungeon`). Because
 `ASPNETCORE_ENVIRONMENT` is `Development`, the OpenAPI document is served at
 `/openapi/v1.json` and the Scalar UI at `/scalar`.
 
@@ -113,7 +113,7 @@ PostgreSQL is configured through the `ConnectionStrings` section.
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=combat;Username=combat",
+    "DefaultConnection": "Host=localhost;Port=5432;Database=dungeon;Username=dungeon",
     "PasswordFile": "/run/secrets/postgres_password"
   }
 }
@@ -124,15 +124,15 @@ secret instead of storing it in the configuration file.
 
 ## Database migrations
 
-`Combat.Infrastructure` owns both the migrations and the design-time
-`CombatDbContextFactory`, including the EF Core Design dependency. The factory
+`Dungeon.Infrastructure` owns both the migrations and the design-time
+`DungeonDbContextFactory`, including the EF Core Design dependency. The factory
 loads the Presentation configuration from the repository root and lets
 `ConnectionStrings__DefaultConnection` override it.
 
 ```powershell
 dotnet tool restore
-dotnet tool run dotnet-ef migrations add <MigrationName> --project Combat.Infrastructure --startup-project Combat.Infrastructure
-dotnet tool run dotnet-ef database update --project Combat.Infrastructure --startup-project Combat.Infrastructure
+dotnet tool run dotnet-ef migrations add <MigrationName> --project Dungeon.Infrastructure --startup-project Dungeon.Infrastructure
+dotnet tool run dotnet-ef database update --project Dungeon.Infrastructure --startup-project Dungeon.Infrastructure
 ```
 
 Development startup applies migrations before seeding. Production-like deployments
@@ -146,11 +146,11 @@ PostgreSQL port `5433`. The Compose API uses its own `postgres:5432` connection.
 `IMessagePublisher` is the application seam for integration messages; its
 `MessageEnvelope` contains no RabbitMQ type. `RabbitMqMessagePublisher` is the
 RabbitMQ adapter registered when `RabbitMq:Enabled` is true. It serializes the
-broker-independent Protobuf envelope from `combat_events_v1.proto`, declares the
-durable `combat.events` topic exchange, and publishes each event with the routing
+broker-independent Protobuf envelope from `dungeon_events_v1.proto`, declares the
+durable `dungeon.events` topic exchange, and publishes each event with the routing
 key `<type>.v<version>`.
 
-Creating a player publishes `combat.player.created.v1`, whose payload is the
+Creating a player publishes `dungeon.player.created.v1`, whose payload is the
 versioned `PlayerCreated` Protobuf message. In Compose, the adapter connects to
 the `rabbitmq` service. For a local run without the broker, leave `Enabled` false;
 the no-op adapter keeps the application runnable while preserving the same
@@ -202,17 +202,17 @@ once per clone.
 
 ## Integration tests
 
-`Combat.Test/Integration` contains runnable examples for both a REST controller
+`Dungeon.Test/Integration` contains runnable examples for both a REST controller
 and a gRPC service. They use `WebApplicationFactory`, PostgreSQL and Respawn.
 Start the database with `docker compose up -d postgres`, then run:
 
 ```powershell
-dotnet test --solution Combat.Presentation.slnx --filter "FullyQualifiedName~Integration"
+dotnet test --solution Dungeon.Presentation.slnx --filter "FullyQualifiedName~Integration"
 ```
 
 Each fixture creates and drops a unique database, then applies the service
 migrations. Set
-`COMBAT_TEST_DATABASE_CONNECTION` to use another administrative PostgreSQL
+`DUNGEON_TEST_DATABASE_CONNECTION` to use another administrative PostgreSQL
 connection; it is never reset itself.
 
 ## Setting up a new repository from this template
@@ -240,5 +240,5 @@ connection; it is never reset itself.
    bypass is needed. Disable squash and rebase merging in the repository
    settings too.
 6. Enable auto-merge on the repository; the back-merge workflow uses it.
-7. Rename the `Combat.*` projects to your service name, and update `/k:` and
+7. Update `/k:` and
    `/o:` in `.github/workflows/sonar.yaml`.

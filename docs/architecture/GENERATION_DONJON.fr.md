@@ -175,8 +175,6 @@ leurs réglages) :
 - Contrat gRPC `CreateDungeonRun` pour le service Player (ADR-GLOB-011) ; pour
   l'instant la création passe par le REST.
 - Événement `DungeonRunEnded` à la victoire, défaite ou abandon.
-- Renommer la solution `Combat.*` en `Dungeon.*` dans une PR dédiée : le dépôt
-  vient du template et porte encore l'ancien nom.
 - Pièges : définir avec l'équipe Combat l'effet d'un `trap` (dégâts,
   désamorçage) ; le Dungeon ne fait que les placer.
 - Combat : appeler `POST /dungeon-runs/{runId}/boss-defeats` à la victoire sur
