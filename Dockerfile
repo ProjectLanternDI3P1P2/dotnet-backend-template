@@ -1,18 +1,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Combat.Presentation.slnx ./
-COPY Combat.Contracts/Combat.Contracts.csproj Combat.Contracts/
-COPY Combat.Domain/Combat.Domain.csproj Combat.Domain/
-COPY Combat.Application/Combat.Application.csproj Combat.Application/
-COPY Combat.Infrastructure/Combat.Infrastructure.csproj Combat.Infrastructure/
-COPY Combat.Presentation/Combat.Presentation.csproj Combat.Presentation/
-COPY Combat.Test/Combat.Test.csproj Combat.Test/
+COPY Dungeon.Presentation.slnx ./
+COPY Dungeon.Contracts/Dungeon.Contracts.csproj Dungeon.Contracts/
+COPY Dungeon.Domain/Dungeon.Domain.csproj Dungeon.Domain/
+COPY Dungeon.Application/Dungeon.Application.csproj Dungeon.Application/
+COPY Dungeon.Infrastructure/Dungeon.Infrastructure.csproj Dungeon.Infrastructure/
+COPY Dungeon.Presentation/Dungeon.Presentation.csproj Dungeon.Presentation/
+COPY Dungeon.Test/Dungeon.Test.csproj Dungeon.Test/
 
-RUN dotnet restore Combat.Presentation.slnx
+RUN dotnet restore Dungeon.Presentation.slnx
 
 COPY . .
-RUN dotnet publish Combat.Presentation/Combat.Presentation.csproj \
+RUN dotnet publish Dungeon.Presentation/Dungeon.Presentation.csproj \
     --configuration Release \
     --output /app/publish \
     --no-restore
@@ -27,4 +27,4 @@ COPY --from=build /app/publish .
 # Unprivileged "app" user shipped by the aspnet image.
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "Combat.Presentation.dll"]
+ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
