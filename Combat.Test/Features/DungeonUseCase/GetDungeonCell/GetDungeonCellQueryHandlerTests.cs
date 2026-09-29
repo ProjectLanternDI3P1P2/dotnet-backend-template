@@ -17,7 +17,7 @@ public class GetDungeonCellQueryHandlerTests
 
     public GetDungeonCellQueryHandlerTests()
     {
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         _floor = dungeon.Floors[0];
         _dungeonRunRepositoryMock
             .Setup(repository =>

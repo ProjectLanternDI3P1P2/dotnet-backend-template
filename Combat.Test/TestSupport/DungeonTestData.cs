@@ -33,7 +33,7 @@ public static class DungeonTestData
         return data;
     }
 
-    public static Dungeon Generate(Seed seed, DungeonSettings? settings = null)
+    public static GeneratedDungeon Generate(Seed seed, DungeonSettings? settings = null)
     {
         return new DungeonGenerator().Generate(seed, settings ?? DungeonSettings.Default);
     }
@@ -43,7 +43,7 @@ public static class DungeonTestData
     /// rooms (type, bounds, depth, connections) and elements (type, position, room).
     /// Two dungeons are identical exactly when their snapshots are equal.
     /// </summary>
-    public static string Snapshot(Dungeon dungeon)
+    public static string Snapshot(GeneratedDungeon dungeon)
     {
         StringBuilder builder = new();
         builder.Append(
@@ -93,7 +93,7 @@ public static class DungeonTestData
     }
 
     /// <summary>64-bit FNV-1a of the snapshot: short enough to pin in a golden-master test.</summary>
-    public static string Fingerprint(Dungeon dungeon)
+    public static string Fingerprint(GeneratedDungeon dungeon)
     {
         ulong hash = 14695981039346656037;
         foreach (char character in Snapshot(dungeon))
@@ -190,7 +190,7 @@ public static class DungeonTestData
     }
 
     /// <summary>A hand-made floor, for tests that need an exact tile next to the hero.</summary>
-    public static Dungeon SingleRowDungeon(params CellType[] cells)
+    public static GeneratedDungeon SingleRowDungeon(params CellType[] cells)
     {
         DungeonFloor floor = new(
             index: 0,
@@ -203,7 +203,7 @@ public static class DungeonTestData
             entrance: new Position(0, 0)
         );
 
-        return new Dungeon(
+        return new GeneratedDungeon(
             ReferenceSeed,
             DungeonGenerator.CurrentVersion,
             new DungeonSettings(DungeonSettings.MinimumRoomsPerFloor, 1),

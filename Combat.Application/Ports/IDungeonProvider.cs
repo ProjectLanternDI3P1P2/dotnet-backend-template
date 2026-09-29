@@ -9,5 +9,5 @@ namespace Combat.Application.Ports;
 /// </summary>
 public interface IDungeonProvider
 {
-    Dungeon Get(Seed seed, DungeonSettings settings, int generatorVersion);
+    GeneratedDungeon Get(Seed seed, DungeonSettings settings, int generatorVersion);
 }

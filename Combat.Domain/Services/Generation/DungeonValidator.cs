@@ -10,7 +10,7 @@ namespace Combat.Domain.Services.Generation;
 /// </summary>
 public static class DungeonValidator
 {
-    public static IReadOnlyList<string> Validate(Dungeon dungeon)
+    public static IReadOnlyList<string> Validate(GeneratedDungeon dungeon)
     {
         List<string> violations = [];
 

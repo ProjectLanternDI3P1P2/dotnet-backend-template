@@ -14,7 +14,7 @@ public class TakeStairsDownCommandHandlerTests
 {
     private readonly Mock<IDungeonRunRepository> _dungeonRunRepositoryMock = new();
     private readonly TakeStairsDownCommandHandler _handler;
-    private readonly Dungeon _dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+    private readonly GeneratedDungeon _dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
     private readonly DungeonRun _run;
 
     public TakeStairsDownCommandHandlerTests()

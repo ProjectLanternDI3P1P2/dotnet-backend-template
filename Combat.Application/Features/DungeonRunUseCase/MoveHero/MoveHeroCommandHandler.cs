@@ -23,7 +23,7 @@ public sealed class MoveHeroCommandHandler(
         // The validator has already rejected unknown directions (422).
         DungeonContract.TryParseDirection(request.Direction, out Direction direction);
 
-        Dungeon dungeon = dungeonProvider.Get(run.Seed, run.Settings, run.GeneratorVersion);
+        GeneratedDungeon dungeon = dungeonProvider.Get(run.Seed, run.Settings, run.GeneratorVersion);
 
         // The walkability rule lives in the domain: walls, obstacles, the void and anything
         // outside the floor raise InvalidMoveException (409) and leave the run untouched.

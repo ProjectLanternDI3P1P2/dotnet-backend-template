@@ -15,7 +15,7 @@ public class DungeonGeneratorRulesTests
     public void Generate_AnySeed_CreatesFortyRoomsOnFourFloorsOfTen(ulong seedValue)
     {
         // Act
-        Dungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
+        GeneratedDungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
 
         // Assert: the stairs rooms, which only hold the way down, are not counted.
         dungeon.RoomCount.Should().Be(40);
@@ -76,7 +76,7 @@ public class DungeonGeneratorRulesTests
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_EveryFloorHasABossGuardingTheWayDown(ulong seedValue)
     {
-        Dungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
+        GeneratedDungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
 
         foreach (DungeonFloor floor in dungeon.Floors.Where(floor => !floor.IsFinalFloor))
         {
@@ -230,7 +230,7 @@ public class DungeonGeneratorRulesTests
     public void Generate_OtherFloorCounts_SplitTheFortyRoomsAndLinkFloorsWithStairs(int floorCount)
     {
         // Act
-        Dungeon dungeon = DungeonTestData.Generate(
+        GeneratedDungeon dungeon = DungeonTestData.Generate(
             DungeonTestData.ReferenceSeed,
             new DungeonSettings(DungeonSettings.DefaultRoomCount, floorCount)
         );

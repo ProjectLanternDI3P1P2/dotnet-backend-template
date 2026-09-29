@@ -18,7 +18,7 @@ public sealed class TakeStairsDownCommandHandler(
                 $"Dungeon run not found with RunId '{request.RunId}'."
             );
 
-        Dungeon dungeon = dungeonProvider.Get(run.Seed, run.Settings, run.GeneratorVersion);
+        GeneratedDungeon dungeon = dungeonProvider.Get(run.Seed, run.Settings, run.GeneratorVersion);
 
         // Refused with InvalidMoveException (409) when the hero is not on the stairs.
         run.TakeStairsDown(dungeon);

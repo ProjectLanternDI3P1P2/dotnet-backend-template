@@ -18,7 +18,7 @@ public sealed class GetDungeonCellQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        (Dungeon dungeon, DungeonFloor floor) = await KnownDungeon.GetFloorAsync(
+        (GeneratedDungeon dungeon, DungeonFloor floor) = await KnownDungeon.GetFloorAsync(
             request.Seed,
             request.Floor,
             dungeonRunRepository,

@@ -26,8 +26,8 @@ public class DungeonGeneratorDeterminismTests
         Seed seed = new(seedValue);
 
         // Act: two generator instances, as two service replicas would do.
-        Dungeon first = new DungeonGenerator().Generate(seed, DungeonSettings.Default);
-        Dungeon second = new DungeonGenerator().Generate(seed, DungeonSettings.Default);
+        GeneratedDungeon first = new DungeonGenerator().Generate(seed, DungeonSettings.Default);
+        GeneratedDungeon second = new DungeonGenerator().Generate(seed, DungeonSettings.Default);
 
         // Assert
         DungeonTestData.Snapshot(second).Should().Be(DungeonTestData.Snapshot(first));
@@ -66,8 +66,8 @@ public class DungeonGeneratorDeterminismTests
         DungeonSettings settings = new(DungeonSettings.DefaultRoomCount, floorCount);
 
         // Act
-        Dungeon first = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, settings);
-        Dungeon second = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, settings);
+        GeneratedDungeon first = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, settings);
+        GeneratedDungeon second = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, settings);
 
         // Assert
         DungeonTestData.Snapshot(second).Should().Be(DungeonTestData.Snapshot(first));
@@ -77,7 +77,7 @@ public class DungeonGeneratorDeterminismTests
     public void Generate_ReferenceSeed_MatchesTheGoldenMaster()
     {
         // Act
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
 
         // Assert
         DungeonTestData.Fingerprint(dungeon).Should().Be(ReferenceFingerprint);
@@ -104,8 +104,8 @@ public class DungeonGeneratorDeterminismTests
         DungeonSettings fortyOneRooms = new(41, 2);
 
         // Act
-        Dungeon first = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyRooms);
-        Dungeon second = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyOneRooms);
+        GeneratedDungeon first = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyRooms);
+        GeneratedDungeon second = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyOneRooms);
 
         // Assert: a lower floor can be generated on demand, when the party reaches it.
         DungeonTestData

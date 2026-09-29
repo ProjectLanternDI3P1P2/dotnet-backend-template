@@ -22,7 +22,7 @@ public sealed class CachedDungeonProvider(DungeonGenerator dungeonGenerator)
         new MemoryCacheOptions { SizeLimit = MaximumCachedDungeons }
     );
 
-    public Dungeon Get(Seed seed, DungeonSettings settings, int generatorVersion)
+    public GeneratedDungeon Get(Seed seed, DungeonSettings settings, int generatorVersion)
     {
         var key = (seed, settings.RoomCount, settings.FloorCount, generatorVersion);
 

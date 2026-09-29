@@ -17,7 +17,7 @@ public class DungeonRunTests
     public void Start_PlacesTheHeroOnTheEntranceOfTheFirstFloor()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
 
         // Act
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
@@ -40,7 +40,7 @@ public class DungeonRunTests
     public void MoveHero_OntoAWalkableTile_MovesOneTileAndEndsTheTurn(CellType target)
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, target);
+        GeneratedDungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, target);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -61,7 +61,7 @@ public class DungeonRunTests
     public void MoveHero_OntoABlockingTile_IsRejectedAndChangesNothing(CellType target)
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, target);
+        GeneratedDungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, target);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -80,7 +80,7 @@ public class DungeonRunTests
     public void MoveHero_OutOfTheFloor_IsRejected(Direction direction)
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, CellType.Floor);
+        GeneratedDungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, CellType.Floor);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -95,7 +95,7 @@ public class DungeonRunTests
     public void MoveHero_TowardsTheWallOfTheStartRoom_StopsAtTheFirstBlockingTile()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // One row above the arrival: doors only sit on the centre row and column.
@@ -124,7 +124,7 @@ public class DungeonRunTests
     public void MoveHero_RandomWalk_OnlyEverStandsOnWalkableTiles()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonFloor floor = dungeon.Floors[0];
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
         var random = new DeterministicRandom(99);
@@ -163,8 +163,8 @@ public class DungeonRunTests
     public void MoveHero_WithTheDungeonOfAnotherSeed_Throws()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
-        Dungeon otherDungeon = DungeonTestData.Generate(new Seed(1));
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon otherDungeon = DungeonTestData.Generate(new Seed(1));
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -178,7 +178,7 @@ public class DungeonRunTests
     public void MoveHero_ThroughTheGateWhileTheBossStands_IsRejected()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, CellType.Gate);
+        GeneratedDungeon dungeon = DungeonTestData.SingleRowDungeon(CellType.Floor, CellType.Gate);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -193,7 +193,7 @@ public class DungeonRunTests
     public void DefeatFloorBoss_InTheBossRoom_OpensTheGateToTheStairs()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonFloor floor = dungeon.Floors[0];
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
         WalkTo(run, dungeon, BossOf(floor));
@@ -213,7 +213,7 @@ public class DungeonRunTests
     public void DefeatFloorBoss_OutsideTheBossRoom_IsRejected()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -229,7 +229,7 @@ public class DungeonRunTests
     public void DefeatFloorBoss_OnTheLastFloor_WinsTheRun()
     {
         // Arrange: a single floor, so its boss is the final boss.
-        Dungeon dungeon = DungeonTestData.Generate(
+        GeneratedDungeon dungeon = DungeonTestData.Generate(
             DungeonTestData.ReferenceSeed,
             new DungeonSettings(10, 1)
         );
@@ -249,7 +249,7 @@ public class DungeonRunTests
     public void TakeStairsDown_OnTheStairs_ArrivesOnTheStairsUpOfTheNextFloor()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonFloor firstFloor = dungeon.Floors[0];
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
         WalkTo(run, dungeon, BossOf(firstFloor));
@@ -271,7 +271,7 @@ public class DungeonRunTests
     public void TakeStairsDown_AwayFromTheStairs_IsRejected()
     {
         // Arrange
-        Dungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
@@ -285,7 +285,7 @@ public class DungeonRunTests
     private static Position BossOf(DungeonFloor floor) =>
         floor.Elements.Single(element => element.Type == ElementType.Boss).Position;
 
-    private static void WalkTo(DungeonRun run, Dungeon dungeon, Position target)
+    private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target)
     {
         DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
         foreach (Direction direction in DungeonTestData.FindPath(floor, run.HeroPosition, target)!)

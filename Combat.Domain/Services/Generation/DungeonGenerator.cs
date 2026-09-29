@@ -22,12 +22,12 @@ public sealed class DungeonGenerator
     /// </remarks>
     public const int CurrentVersion = 3;
 
-    public Dungeon Generate(Seed seed, DungeonSettings settings)
+    public GeneratedDungeon Generate(Seed seed, DungeonSettings settings)
     {
         return Generate(seed, settings, CurrentVersion);
     }
 
-    public Dungeon Generate(Seed seed, DungeonSettings settings, int generatorVersion)
+    public GeneratedDungeon Generate(Seed seed, DungeonSettings settings, int generatorVersion)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -42,7 +42,7 @@ public sealed class DungeonGenerator
             floors.Add(GenerateFloor(seed, settings, floorIndex));
         }
 
-        Dungeon dungeon = new(seed, CurrentVersion, settings, floors);
+        GeneratedDungeon dungeon = new(seed, CurrentVersion, settings, floors);
 
         // Defence in depth: a rule broken here is a generator bug, and it must surface as an
         // error rather than as a room a player can never reach.

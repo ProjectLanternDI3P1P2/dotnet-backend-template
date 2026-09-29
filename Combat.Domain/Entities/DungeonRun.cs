@@ -52,7 +52,7 @@ public sealed class DungeonRun
     public static DungeonRun Start(
         Guid runId,
         Guid gameSessionId,
-        Dungeon dungeon,
+        GeneratedDungeon dungeon,
         DateTimeOffset startedAt
     )
     {
@@ -80,7 +80,7 @@ public sealed class DungeonRun
     /// and the gate of a boss still standing are rejected; the run is left unchanged when a
     /// move is refused.
     /// </summary>
-    public Position MoveHero(Direction direction, Dungeon dungeon)
+    public Position MoveHero(Direction direction, GeneratedDungeon dungeon)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
         Position target = HeroPosition.Step(direction);
@@ -112,7 +112,7 @@ public sealed class DungeonRun
     }
 
     /// <summary>Takes the stairs the hero stands on and arrives at the next floor's entrance.</summary>
-    public int TakeStairsDown(Dungeon dungeon)
+    public int TakeStairsDown(GeneratedDungeon dungeon)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
 
@@ -136,7 +136,7 @@ public sealed class DungeonRun
     /// and defeating the boss of the last floor wins the run. The fight itself belongs to
     /// Combat; the hero must be in the boss room. Recording it twice changes nothing.
     /// </summary>
-    public void DefeatFloorBoss(Dungeon dungeon)
+    public void DefeatFloorBoss(GeneratedDungeon dungeon)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
         if (IsFloorBossDefeated)
@@ -159,7 +159,7 @@ public sealed class DungeonRun
         }
     }
 
-    private DungeonFloor GetCurrentFloor(Dungeon dungeon)
+    private DungeonFloor GetCurrentFloor(GeneratedDungeon dungeon)
     {
         if (Status != DungeonRunStatus.Active)
         {

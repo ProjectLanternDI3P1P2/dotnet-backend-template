@@ -6,9 +6,9 @@ namespace Combat.Domain.Entities;
 /// Everything a seed produces. It is never persisted: it is regenerated from
 /// (<see cref="Seed"/>, <see cref="Settings"/>, <see cref="GeneratorVersion"/>) on demand.
 /// </summary>
-public sealed class Dungeon
+public sealed class GeneratedDungeon
 {
-    public Dungeon(
+    public GeneratedDungeon(
         Seed seed,
         int generatorVersion,
         DungeonSettings settings,

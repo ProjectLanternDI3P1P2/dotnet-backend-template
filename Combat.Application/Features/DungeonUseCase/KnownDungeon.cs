@@ -12,7 +12,7 @@ namespace Combat.Application.Features.DungeonUseCase;
 /// </summary>
 internal static class KnownDungeon
 {
-    public static async Task<(Dungeon Dungeon, DungeonFloor Floor)> GetFloorAsync(
+    public static async Task<(GeneratedDungeon Dungeon, DungeonFloor Floor)> GetFloorAsync(
         string seedText,
         int floorIndex,
         IDungeonRunRepository dungeonRunRepository,
@@ -27,7 +27,7 @@ internal static class KnownDungeon
             await dungeonRunRepository.FindLatestBySeedAsync(seed, cancellationToken)
             ?? throw new KeyNotFoundException($"Dungeon not found with seed '{seed}'.");
 
-        Dungeon dungeon = dungeonProvider.Get(seed, run.Settings, run.GeneratorVersion);
+        GeneratedDungeon dungeon = dungeonProvider.Get(seed, run.Settings, run.GeneratorVersion);
 
         return floorIndex < dungeon.Floors.Count
             ? (dungeon, dungeon.Floors[floorIndex])

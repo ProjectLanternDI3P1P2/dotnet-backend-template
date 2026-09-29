@@ -13,7 +13,7 @@ public sealed class GeneratingDungeonProvider : IDungeonProvider
 {
     private readonly DungeonGenerator _generator = new();
 
-    public Dungeon Get(Seed seed, DungeonSettings settings, int generatorVersion)
+    public GeneratedDungeon Get(Seed seed, DungeonSettings settings, int generatorVersion)
     {
         return _generator.Generate(seed, settings, generatorVersion);
     }

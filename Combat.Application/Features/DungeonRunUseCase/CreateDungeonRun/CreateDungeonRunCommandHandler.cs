@@ -45,7 +45,7 @@ public sealed class CreateDungeonRunCommandHandler(
             : await GetReplaySetupAsync(Seed.Parse(request.Seed), cancellationToken);
 
         // Generating here also proves the dungeon is valid before the run is stored.
-        Dungeon dungeon = dungeonProvider.Get(seed, settings, generatorVersion);
+        GeneratedDungeon dungeon = dungeonProvider.Get(seed, settings, generatorVersion);
 
         await dungeonRunRepository.AddAsync(
             DungeonRun.Start(request.RunId, request.GameSessionId, dungeon, clock.UtcNow),
