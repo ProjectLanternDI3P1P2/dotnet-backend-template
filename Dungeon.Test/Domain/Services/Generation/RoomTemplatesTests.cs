@@ -50,7 +50,9 @@ public class RoomTemplatesTests
         RoomTemplate template = Find(name);
 
         // Assert: odd sizes centre the room exactly on its corridors.
-        (template.Width % 2).Should().Be(1);
+        (template.Width % 2)
+            .Should()
+            .Be(1);
         (template.Height % 2).Should().Be(1);
         template.Rows.Should().OnlyContain(row => row.Length == template.Width);
         string.Concat(template.Rows).All(KnownTiles.Contains).Should().BeTrue();
@@ -120,8 +122,12 @@ public class RoomTemplatesTests
             Count(RoomTemplate.StairsDownTile).Should().BeGreaterThanOrEqualTo(1);
         }
 
-        Count(RoomTemplate.BossSpot).Should().Be(template.RoomTypes.Contains(RoomType.Boss) ? 1 : 0);
-        Count(RoomTemplate.ArrivalSpot).Should().Be(template.RoomTypes.Contains(RoomType.Start) ? 1 : 0);
+        Count(RoomTemplate.BossSpot)
+            .Should()
+            .Be(template.RoomTypes.Contains(RoomType.Boss) ? 1 : 0);
+        Count(RoomTemplate.ArrivalSpot)
+            .Should()
+            .Be(template.RoomTypes.Contains(RoomType.Start) ? 1 : 0);
     }
 
     [Theory]

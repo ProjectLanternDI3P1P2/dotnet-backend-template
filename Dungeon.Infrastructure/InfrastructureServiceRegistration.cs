@@ -46,7 +46,8 @@ public static class InfrastructureServiceRegistration
         DungeonGenerationOptions options =
             configuration
                 .GetSection(DungeonGenerationOptions.SectionName)
-                .Get<DungeonGenerationOptions>() ?? new DungeonGenerationOptions();
+                .Get<DungeonGenerationOptions>()
+            ?? new DungeonGenerationOptions();
 
         // Built here so that an impossible configuration (0 floors, 3 rooms...) stops the
         // service at startup instead of failing on the first exploration.

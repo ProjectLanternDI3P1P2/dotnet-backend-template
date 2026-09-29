@@ -11,9 +11,6 @@ public readonly record struct RoomBounds(int X, int Y, int Width, int Height)
 
     public bool Contains(Position position)
     {
-        return position.X >= X
-            && position.X <= Right
-            && position.Y >= Y
-            && position.Y <= Bottom;
+        return position.X >= X && position.X <= Right && position.Y >= Y && position.Y <= Bottom;
     }
 }

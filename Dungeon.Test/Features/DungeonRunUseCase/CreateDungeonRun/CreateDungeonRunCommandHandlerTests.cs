@@ -57,9 +57,7 @@ public class CreateDungeonRunCommandHandlerTests
         _storedRun.Seed.Should().Be(freshSeed);
         _storedRun.RoomCount.Should().Be(40);
         _storedRun.StartedAt.Should().Be(Now);
-        _storedRun
-            .HeroPosition.Should()
-            .Be(DungeonTestData.Generate(freshSeed).Floors[0].Entrance);
+        _storedRun.HeroPosition.Should().Be(DungeonTestData.Generate(freshSeed).Floors[0].Entrance);
     }
 
     [Fact]

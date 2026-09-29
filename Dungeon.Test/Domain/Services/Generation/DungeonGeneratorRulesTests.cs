@@ -83,7 +83,9 @@ public class DungeonGeneratorRulesTests
             // Act
             Room bossRoom = floor.Rooms.Single(room => room.Type == RoomType.Boss);
             Room stairsRoom = floor.Rooms.Single(room => room.Type == RoomType.Stairs);
-            DungeonElement boss = floor.Elements.Single(element => element.Type == ElementType.Boss);
+            DungeonElement boss = floor.Elements.Single(element =>
+                element.Type == ElementType.Boss
+            );
             Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
             List<Position> stairs = DungeonTestData
                 .PositionsOf(floor, CellType.StairsDown)
@@ -92,9 +94,14 @@ public class DungeonGeneratorRulesTests
             // Assert: the stairs room lies just north of the boss room, behind the gate.
             boss.RoomId.Should().Be(bossRoom.Id);
             stairsRoom.ConnectedRoomIds.Should().Equal(bossRoom.Id);
-            stairsRoom.GridCell.Should().Be(new Position(bossRoom.GridCell.X, bossRoom.GridCell.Y - 1));
+            stairsRoom
+                .GridCell.Should()
+                .Be(new Position(bossRoom.GridCell.X, bossRoom.GridCell.Y - 1));
             gate.Should().Be(new Position(bossRoom.Center.X, bossRoom.Interior.Y - 1));
-            stairs.Should().NotBeEmpty().And.OnlyContain(tile => floor.GetRoomId(tile) == stairsRoom.Id);
+            stairs
+                .Should()
+                .NotBeEmpty()
+                .And.OnlyContain(tile => floor.GetRoomId(tile) == stairsRoom.Id);
             DungeonTestData
                 .ReachableFrom(floor, floor.Entrance, gateIsOpen: false)
                 .Should()
@@ -197,14 +204,20 @@ public class DungeonGeneratorRulesTests
             .ToList();
 
         // Assert: columns, railings, grates, spikes, pits and inner walls all show up.
-        floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Pillar).Any());
+        floors
+            .Should()
+            .Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Pillar).Any());
         floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Fence).Any());
         floors.Should().Contain(floor => DungeonTestData.PositionsOf(floor, CellType.Grate).Any());
         floors
             .Should()
             .Contain(floor => floor.Elements.Any(element => element.Type == ElementType.Trap));
-        floors.Should().Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Void)));
-        floors.Should().Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Wall)));
+        floors
+            .Should()
+            .Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Void)));
+        floors
+            .Should()
+            .Contain(floor => floor.Rooms.Any(room => Holds(floor, room, CellType.Wall)));
         floors
             .SelectMany(floor => floor.Rooms)
             .Select(room => (room.Interior.Width, room.Interior.Height))

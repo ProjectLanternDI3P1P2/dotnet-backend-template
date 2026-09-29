@@ -62,7 +62,10 @@ public sealed class CreateDungeonRunCommandHandler(
         for (int draw = 0; draw < MaximumSeedDraws; draw++)
         {
             Seed candidate = seedGenerator.NewSeed();
-            if (await dungeonRunRepository.FindLatestBySeedAsync(candidate, cancellationToken) is null)
+            if (
+                await dungeonRunRepository.FindLatestBySeedAsync(candidate, cancellationToken)
+                is null
+            )
             {
                 return candidate;
             }

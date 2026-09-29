@@ -104,8 +104,14 @@ public class DungeonGeneratorDeterminismTests
         DungeonSettings fortyOneRooms = new(41, 2);
 
         // Act
-        GeneratedDungeon first = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyRooms);
-        GeneratedDungeon second = DungeonTestData.Generate(DungeonTestData.ReferenceSeed, fortyOneRooms);
+        GeneratedDungeon first = DungeonTestData.Generate(
+            DungeonTestData.ReferenceSeed,
+            fortyRooms
+        );
+        GeneratedDungeon second = DungeonTestData.Generate(
+            DungeonTestData.ReferenceSeed,
+            fortyOneRooms
+        );
 
         // Assert: a lower floor can be generated on demand, when the party reaches it.
         DungeonTestData

@@ -187,7 +187,11 @@ internal static class RoomGraphBuilder
 
     private static Position South(Position cell) => new(cell.X, cell.Y + 1);
 
-    private static void AddLoops(DeterministicRandom random, List<RoomDraft> rooms, int[] roomIdByCell)
+    private static void AddLoops(
+        DeterministicRandom random,
+        List<RoomDraft> rooms,
+        int[] roomIdByCell
+    )
     {
         foreach (RoomDraft room in rooms)
         {

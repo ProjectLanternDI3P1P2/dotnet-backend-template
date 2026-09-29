@@ -141,9 +141,9 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
     public async Task PostBossDefeat_AwayFromTheBoss_Returns409AndKeepsTheGateClosed()
     {
         // Arrange
-        var run = await (await PostRunAsync(Guid.NewGuid())).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
+        var run = await (
+            await PostRunAsync(Guid.NewGuid())
+        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
 
         // Act
         HttpResponseMessage response = await fixture.HttpClient.PostAsync(

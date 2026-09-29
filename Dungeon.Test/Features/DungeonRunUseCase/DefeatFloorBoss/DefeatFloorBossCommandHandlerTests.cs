@@ -14,7 +14,9 @@ public class DefeatFloorBossCommandHandlerTests
 {
     private readonly Mock<IDungeonRunRepository> _dungeonRunRepositoryMock = new();
     private readonly DefeatFloorBossCommandHandler _handler;
-    private readonly GeneratedDungeon _dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+    private readonly GeneratedDungeon _dungeon = DungeonTestData.Generate(
+        DungeonTestData.ReferenceSeed
+    );
     private readonly DungeonRun _run;
 
     public DefeatFloorBossCommandHandlerTests()

@@ -184,7 +184,9 @@ public static class DungeonValidator
 
         if (reached.Count != walkable)
         {
-            violations.Add($"{walkable - reached.Count} walkable tiles cannot be reached from the entrance");
+            violations.Add(
+                $"{walkable - reached.Count} walkable tiles cannot be reached from the entrance"
+            );
         }
 
         foreach (Room room in floor.Rooms.Where(room => !reached.Contains(room.Center)))

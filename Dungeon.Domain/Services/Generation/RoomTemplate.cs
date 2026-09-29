@@ -63,7 +63,11 @@ public sealed class RoomTemplate
             StairsDownTile => CellType.StairsDown,
             ArrivalSpot => hasStairsUp ? CellType.StairsUp : CellType.Floor,
             FloorTile or EnemySpot or TrapSpot or TreasureSpot or BossSpot => CellType.Floor,
-            _ => throw new ArgumentOutOfRangeException(nameof(tile), tile, "Unknown template tile."),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(tile),
+                tile,
+                "Unknown template tile."
+            ),
         };
     }
 }

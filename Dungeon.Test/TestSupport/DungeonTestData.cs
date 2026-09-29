@@ -177,8 +177,7 @@ public static class DungeonTestData
             {
                 Position next = current.Step(direction);
                 bool passable =
-                    floor.IsWalkable(next)
-                    && (gateIsOpen || floor.GetCell(next) != CellType.Gate);
+                    floor.IsWalkable(next) && (gateIsOpen || floor.GetCell(next) != CellType.Gate);
                 if (passable && visited.Add(next))
                 {
                     queue.Enqueue(next);

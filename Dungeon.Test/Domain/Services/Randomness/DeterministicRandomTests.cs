@@ -65,7 +65,10 @@ public class DeterministicRandomTests
 
         // Act
         ulong[] firstSequence = Enumerable.Range(0, 1000).Select(_ => first.NextUInt64()).ToArray();
-        ulong[] secondSequence = Enumerable.Range(0, 1000).Select(_ => second.NextUInt64()).ToArray();
+        ulong[] secondSequence = Enumerable
+            .Range(0, 1000)
+            .Select(_ => second.NextUInt64())
+            .ToArray();
 
         // Assert
         firstSequence.Should().Equal(secondSequence);
@@ -83,7 +86,9 @@ public class DeterministicRandomTests
         ulong lowerFloor = DeterministicRandom.ForStream(seed, RandomStream.Layout, 1).NextUInt64();
 
         // Assert
-        new[] { layout, content, lowerFloor }.Should().OnlyHaveUniqueItems();
+        new[] { layout, content, lowerFloor }
+            .Should()
+            .OnlyHaveUniqueItems();
     }
 
     [Theory]
@@ -98,7 +103,10 @@ public class DeterministicRandomTests
         var random = new DeterministicRandom(7);
 
         // Act
-        int[] values = Enumerable.Range(0, 10_000).Select(_ => random.NextInt(maxExclusive)).ToArray();
+        int[] values = Enumerable
+            .Range(0, 10_000)
+            .Select(_ => random.NextInt(maxExclusive))
+            .ToArray();
 
         // Assert
         values.Should().OnlyContain(value => value >= 0 && value < maxExclusive);

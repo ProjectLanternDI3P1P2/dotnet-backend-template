@@ -14,7 +14,9 @@ public class TakeStairsDownCommandHandlerTests
 {
     private readonly Mock<IDungeonRunRepository> _dungeonRunRepositoryMock = new();
     private readonly TakeStairsDownCommandHandler _handler;
-    private readonly GeneratedDungeon _dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+    private readonly GeneratedDungeon _dungeon = DungeonTestData.Generate(
+        DungeonTestData.ReferenceSeed
+    );
     private readonly DungeonRun _run;
 
     public TakeStairsDownCommandHandlerTests()
@@ -35,7 +37,9 @@ public class TakeStairsDownCommandHandlerTests
     {
         // Arrange: beat the boss of the floor, then go through its gate to the stairs.
         DungeonFloor firstFloor = _dungeon.Floors[0];
-        Position boss = firstFloor.Elements.Single(element => element.Type == ElementType.Boss).Position;
+        Position boss = firstFloor
+            .Elements.Single(element => element.Type == ElementType.Boss)
+            .Position;
         Position stairs = DungeonTestData.PositionsOf(firstFloor, CellType.StairsDown).First();
         WalkTo(firstFloor, boss);
         _run.DefeatFloorBoss(_dungeon);

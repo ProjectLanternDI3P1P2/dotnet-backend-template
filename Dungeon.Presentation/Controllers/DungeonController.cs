@@ -50,7 +50,10 @@ public sealed class DungeonController(IMediator mediator, ILogger logger) : Cont
             seed
         );
 
-        var cell = await mediator.Send(new GetDungeonCellQuery(seed, floor, x, y), cancellationToken);
+        var cell = await mediator.Send(
+            new GetDungeonCellQuery(seed, floor, x, y),
+            cancellationToken
+        );
 
         Response.Headers.CacheControl = ImmutableCacheControl;
         return Ok(cell);
