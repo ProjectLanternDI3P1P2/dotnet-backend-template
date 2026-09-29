@@ -61,8 +61,7 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         };
 
         context.Response.StatusCode = StatusCodes.Status404NotFound;
-        context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
+        await WriteProblemAsync(context, problemDetails);
     }
 
     private static async Task HandleConflictAsync(HttpContext context, string title, string detail)
@@ -77,8 +76,7 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         };
 
         context.Response.StatusCode = StatusCodes.Status409Conflict;
-        context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
+        await WriteProblemAsync(context, problemDetails);
     }
 
     private static async Task HandleValidationExceptionAsync(
@@ -103,8 +101,22 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         };
 
         context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-        context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
+        await WriteProblemAsync(context, problemDetails);
+    }
+
+    /// <summary>
+    /// Writes an RFC 9457 problem. The content type must be passed to WriteAsJsonAsync:
+    /// setting Response.ContentType beforehand is overwritten with application/json.
+    /// </summary>
+    private static Task WriteProblemAsync<TProblem>(HttpContext context, TProblem problemDetails)
+        where TProblem : ProblemDetails
+    {
+        return context.Response.WriteAsJsonAsync(
+            problemDetails,
+            options: null,
+            contentType: "application/problem+json",
+            context.RequestAborted
+        );
     }
 
     private static string ToCamelCase(string propertyName)
@@ -129,7 +141,6 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         };
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails, context.RequestAborted);
+        await WriteProblemAsync(context, problemDetails);
     }
 }
