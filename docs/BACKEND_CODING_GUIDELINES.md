@@ -248,9 +248,9 @@ Prefer:
 
 ```csharp
 logger.LogInformation(
-    "Player {PlayerId} started combat {CombatId}",
+    "Player {PlayerId} started dungeon run {DungeonRunId}",
     playerId,
-    combatId);
+    dungeonRunId);
 ```
 
 Do not use string interpolation for structured log properties.
@@ -280,10 +280,10 @@ Distributed messages use common metadata concepts:
   "messageId": "guid",
   "correlationId": "guid",
   "causationId": "guid",
-  "messageType": "CombatCompleted",
+  "messageType": "DungeonRunCompleted",
   "version": 1,
   "occurredAt": "2026-09-02T12:00:00+00:00",
-  "producer": "combat",
+  "producer": "dungeon",
   "payload": {}
 }
 ```

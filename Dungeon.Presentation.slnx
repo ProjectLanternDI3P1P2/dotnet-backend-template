@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Dungeon.Contracts/Dungeon.Contracts.csproj" />
+  <Project Path="Dungeon.Application/Dungeon.Application.csproj" />
+  <Project Path="Dungeon.Domain/Dungeon.Domain.csproj" />
+  <Project Path="Dungeon.Infrastructure/Dungeon.Infrastructure.csproj" />
+  <Project Path="Dungeon.Test/Dungeon.Test.csproj" Id="cd984a8a-40c0-41c1-a8df-cac3f3814504" />
+  <Project Path="Dungeon.Presentation/Dungeon.Presentation.csproj" />
+</Solution>

@@ -8,16 +8,16 @@
     ".": {
       "package-name": "dotnet-backend-template",
       "changelog-path": "CHANGELOG.md",
-      "exclude-paths": ["Combat.Contracts"],
-      "extra-files": ["Combat.Presentation/Combat.Presentation.csproj"]
+      "exclude-paths": ["Dungeon.Contracts"],
+      "extra-files": ["Dungeon.Presentation/Dungeon.Presentation.csproj"]
     },
-    "Combat.Contracts": {
-      "package-name": "Combat.Contracts",
+    "Dungeon.Contracts": {
+      "package-name": "Dungeon.Contracts",
       "component": "contracts",
       "include-component-in-tag": true,
       "versioning": "always-bump-major",
       "changelog-path": "CHANGELOG.md",
-      "extra-files": ["Combat.Contracts.csproj"]
+      "extra-files": ["Dungeon.Contracts.csproj"]
     }
   },
   "changelog-sections": [

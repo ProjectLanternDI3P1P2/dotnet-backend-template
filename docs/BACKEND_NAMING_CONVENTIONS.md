@@ -10,15 +10,15 @@ Follow standard .NET naming conventions and the repository `.editorconfig`.
 
 | Element | Convention | Example |
 |---|---|---|
-| Namespace | PascalCase | `Combat.Application.Features.CreateCombat` |
-| Class | PascalCase | `CombatRepository` |
-| Record | PascalCase | `CreateCombatCommand` |
-| Interface | `I` + PascalCase | `ICombatRepository` |
+| Namespace | PascalCase | `Dungeon.Application.Features.CreateDungeonRun` |
+| Class | PascalCase | `DungeonRunRepository` |
+| Record | PascalCase | `CreateDungeonRunCommand` |
+| Interface | `I` + PascalCase | `IDungeonRunRepository` |
 | Method | PascalCase | `GetByIdAsync` |
-| Property | PascalCase | `CombatId` |
-| Private field | `_camelCase` | `_combatRepository` |
-| Parameter | camelCase | `combatId` |
-| Local variable | camelCase | `activeCombat` |
+| Property | PascalCase | `DungeonRunId` |
+| Private field | `_camelCase` | `_dungeonRunRepository` |
+| Parameter | camelCase | `dungeonRunId` |
+| Local variable | camelCase | `activeDungeonRun` |
 | Constant | PascalCase | `MaximumPartySize` |
 
 Treat abbreviations as normal words:
@@ -51,7 +51,7 @@ Examples:
 ```text
 PlayerId
 DungeonId
-CombatId
+DungeonRunId
 RewardId
 ItemId
 SessionId
@@ -144,7 +144,7 @@ Use domain verbs when they add meaning:
 
 ```text
 StartDungeonAsync
-CompleteCombatAsync
+CompleteDungeonRunAsync
 EquipItemAsync
 GrantRewardAsync
 ```
@@ -189,7 +189,7 @@ Prefer:
 CreatePlayerRequest
 PlayerDto
 DungeonDto
-CombatDto
+DungeonRunDto
 ```
 
 Avoid vague names such as:
@@ -213,7 +213,7 @@ Examples:
 ```text
 PlayerConfiguration
 DungeonConfiguration
-CombatConfiguration
+DungeonRunConfiguration
 ```
 
 ## Message naming
@@ -223,7 +223,7 @@ Events describe something that already happened and use past tense.
 ```text
 PlayerCreated
 DungeonStarted
-CombatCompleted
+DungeonRunCompleted
 RewardGranted
 ItemEquipped
 ProgressionUpdated
@@ -253,7 +253,7 @@ Logical message destinations use lowercase kebab-case:
 Examples:
 
 ```text
-combat.combat-completed.v1
+dungeon.dungeon-run-completed.v1
 rewards.reward-granted.v1
 dungeon.dungeon-started.v1
 ```
