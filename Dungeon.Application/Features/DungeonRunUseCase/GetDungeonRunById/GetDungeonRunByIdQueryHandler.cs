@@ -16,15 +16,12 @@ public sealed class GetDungeonRunByIdQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        DungeonRun run =
-            await dungeonRunRepository.GetByIdAsync(request.RunId, cancellationToken)
-            ?? throw new KeyNotFoundException(
-                $"Dungeon run not found with RunId '{request.RunId}'."
-            );
+        DungeonRun run = await dungeonRunRepository.GetRequiredAsync(
+            request.RunId,
+            cancellationToken
+        );
 
-        DungeonFloor floor = dungeonProvider
-            .Get(run.Seed, run.Settings, run.GeneratorVersion)
-            .Floors[run.CurrentFloor];
+        DungeonFloor floor = dungeonProvider.Get(run).Floors[run.CurrentFloor];
 
         return new GetDungeonRunByIdResult
         {

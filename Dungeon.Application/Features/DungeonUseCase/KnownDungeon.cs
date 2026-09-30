@@ -1,3 +1,4 @@
+using Dungeon.Application.Features.DungeonRunUseCase;
 using Dungeon.Application.Ports;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Repositories;
@@ -27,7 +28,7 @@ internal static class KnownDungeon
             await dungeonRunRepository.FindLatestBySeedAsync(seed, cancellationToken)
             ?? throw new KeyNotFoundException($"Dungeon not found with seed '{seed}'.");
 
-        GeneratedDungeon dungeon = dungeonProvider.Get(seed, run.Settings, run.GeneratorVersion);
+        GeneratedDungeon dungeon = dungeonProvider.Get(run);
 
         return floorIndex < dungeon.Floors.Count
             ? (dungeon, dungeon.Floors[floorIndex])
