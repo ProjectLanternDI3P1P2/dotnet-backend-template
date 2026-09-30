@@ -18,99 +18,79 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         catch (KeyNotFoundException exception)
         {
             logger.Warning(exception, "Resource not found");
-            await HandleNotFoundExceptionAsync(context, exception);
+            await WriteProblemAsync(
+                context,
+                new ProblemDetails { Title = "Resource not found", Detail = exception.Message },
+                StatusCodes.Status404NotFound
+            );
         }
         catch (ValidationException exception)
         {
             logger.Warning(exception, "Validation error occurred");
-            await HandleValidationExceptionAsync(context, exception);
+            await WriteProblemAsync(
+                context,
+                new ValidationProblemDetails(ToErrors(exception))
+                {
+                    Title = "Validation error",
+                    Detail = "One or more validation errors occurred.",
+                },
+                StatusCodes.Status422UnprocessableEntity
+            );
         }
         catch (DomainException exception)
         {
             logger.Warning(exception, "Business rule refused the operation");
-            await HandleConflictAsync(context, "Operation refused", exception.Message);
+            await WriteProblemAsync(
+                context,
+                new ProblemDetails { Title = "Operation refused", Detail = exception.Message },
+                StatusCodes.Status409Conflict
+            );
         }
         catch (DbUpdateConcurrencyException exception)
         {
             logger.Warning(exception, "Concurrent update detected");
-            await HandleConflictAsync(
+            await WriteProblemAsync(
                 context,
-                "Concurrent update",
-                "The resource was modified by another request. Reload it and try again."
+                new ProblemDetails
+                {
+                    Title = "Concurrent update",
+                    Detail =
+                        "The resource was modified by another request. Reload it and try again.",
+                },
+                StatusCodes.Status409Conflict
             );
         }
         catch (Exception exception)
         {
             logger.Error(exception, "Unhandled exception occurred");
-            await HandleExceptionAsync(context, exception);
-        }
-    }
-
-    private static async Task HandleNotFoundExceptionAsync(
-        HttpContext context,
-        KeyNotFoundException exception
-    )
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://httpstatuses.com/404",
-            Title = "Resource not found",
-            Detail = exception.Message,
-            Status = StatusCodes.Status404NotFound,
-            Instance = context.Request.Path,
-        };
-
-        context.Response.StatusCode = StatusCodes.Status404NotFound;
-        await WriteProblemAsync(context, problemDetails);
-    }
-
-    private static async Task HandleConflictAsync(HttpContext context, string title, string detail)
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://httpstatuses.com/409",
-            Title = title,
-            Detail = detail,
-            Status = StatusCodes.Status409Conflict,
-            Instance = context.Request.Path,
-        };
-
-        context.Response.StatusCode = StatusCodes.Status409Conflict;
-        await WriteProblemAsync(context, problemDetails);
-    }
-
-    private static async Task HandleValidationExceptionAsync(
-        HttpContext context,
-        ValidationException exception
-    )
-    {
-        var errors = exception
-            .Errors.GroupBy(error => error.PropertyName)
-            .ToDictionary(
-                group => ToCamelCase(group.Key),
-                group => group.Select(error => error.ErrorMessage).ToArray()
+            await WriteProblemAsync(
+                context,
+                new ProblemDetails
+                {
+                    Title = "Internal server error",
+                    Detail = environment.IsDevelopment() ? exception.Message : null,
+                },
+                StatusCodes.Status500InternalServerError
             );
-
-        var problemDetails = new ValidationProblemDetails(errors)
-        {
-            Type = "https://httpstatuses.com/422",
-            Title = "Validation error",
-            Detail = "One or more validation errors occurred.",
-            Status = StatusCodes.Status422UnprocessableEntity,
-            Instance = context.Request.Path,
-        };
-
-        context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-        await WriteProblemAsync(context, problemDetails);
+        }
     }
 
     /// <summary>
     /// Writes an RFC 9457 problem. The content type must be passed to WriteAsJsonAsync:
     /// setting Response.ContentType beforehand is overwritten with application/json.
     /// </summary>
-    private static Task WriteProblemAsync<TProblem>(HttpContext context, TProblem problemDetails)
+    private static Task WriteProblemAsync<TProblem>(
+        HttpContext context,
+        TProblem problemDetails,
+        int statusCode
+    )
         where TProblem : ProblemDetails
     {
+        problemDetails.Type = $"https://httpstatuses.com/{statusCode}";
+        problemDetails.Status = statusCode;
+        problemDetails.Instance = context.Request.Path;
+        context.Response.StatusCode = statusCode;
+
         return context.Response.WriteAsJsonAsync(
             problemDetails,
             options: null,
@@ -118,6 +98,14 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
             context.RequestAborted
         );
     }
+
+    private static Dictionary<string, string[]> ToErrors(ValidationException exception) =>
+        exception
+            .Errors.GroupBy(error => error.PropertyName)
+            .ToDictionary(
+                group => ToCamelCase(group.Key),
+                group => group.Select(error => error.ErrorMessage).ToArray()
+            );
 
     private static string ToCamelCase(string propertyName)
     {
@@ -127,20 +115,5 @@ public sealed class ExceptionHandlingMiddleware(ILogger logger, IHostEnvironment
         }
 
         return char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-    }
-
-    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://httpstatuses.com/500",
-            Title = "Internal server error",
-            Detail = environment.IsDevelopment() ? exception.Message : null,
-            Status = StatusCodes.Status500InternalServerError,
-            Instance = context.Request.Path,
-        };
-
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        await WriteProblemAsync(context, problemDetails);
     }
 }
