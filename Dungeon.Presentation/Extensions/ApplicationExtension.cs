@@ -7,19 +7,20 @@ public static class ApplicationExtension
 {
     public static WebApplication ConfigureStart(this WebApplication app)
     {
+        bool isDevelopment = app.Environment.IsDevelopment();
+
         // First, so that every response, error responses included, can be compressed.
         app.UseResponseCompression();
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseHttpsRedirection();
-        }
-
-        if (app.Environment.IsDevelopment())
+        if (isDevelopment)
         {
             app.UseCors(BuilderExtension.LocalFrontendsCorsPolicy);
+        }
+        else
+        {
+            app.UseHttpsRedirection();
         }
 
         app.MapControllers();
@@ -27,7 +28,7 @@ public static class ApplicationExtension
         app.MapHealthChecks("/health/live");
         app.MapHealthChecks("/health/ready");
 
-        if (app.Environment.IsDevelopment())
+        if (isDevelopment)
         {
             app.MapOpenApi();
             app.MapScalarApiReference(opt =>

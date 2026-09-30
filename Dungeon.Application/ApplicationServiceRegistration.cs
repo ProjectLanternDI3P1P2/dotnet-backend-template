@@ -9,23 +9,15 @@ public static class ApplicationServiceRegistration
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        return services.ConfigureMediatR().ConfigureFluentValidation();
-    }
+        Assembly assembly = Assembly.GetExecutingAssembly();
 
-    private static IServiceCollection ConfigureMediatR(this IServiceCollection services)
-    {
         services.AddMediatR(cf =>
         {
-            cf.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly());
+            cf.RegisterServicesFromAssemblies(assembly);
             cf.AddOpenBehavior(typeof(ValidationBehavior<,>));
             cf.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
 
-        return services;
-    }
-
-    private static IServiceCollection ConfigureFluentValidation(this IServiceCollection services)
-    {
-        return services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        return services.AddValidatorsFromAssembly(assembly);
     }
 }
