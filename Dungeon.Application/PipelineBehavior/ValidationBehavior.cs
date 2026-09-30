@@ -16,23 +16,15 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
     {
         ArgumentNullException.ThrowIfNull(next);
 
-        if (validators.Any())
+        ValidationContext<TRequest> context = new(request);
+        ValidationResult[] validationResults = await Task.WhenAll(
+            validators.Select(v => v.ValidateAsync(context, cancellationToken))
+        );
+
+        List<ValidationFailure> failures = [.. validationResults.SelectMany(r => r.Errors)];
+        if (failures.Count > 0)
         {
-            ValidationContext<TRequest> context = new(request);
-
-            ValidationResult[] validationResults = await Task.WhenAll(
-                validators.Select(v => v.ValidateAsync(context, cancellationToken))
-            );
-
-            List<ValidationFailure> failures =
-            [
-                .. validationResults.Where(r => r.Errors.Count > 0).SelectMany(r => r.Errors),
-            ];
-
-            if (failures.Count > 0)
-            {
-                throw new ValidationException(failures);
-            }
+            throw new ValidationException(failures);
         }
 
         return await next(cancellationToken);
