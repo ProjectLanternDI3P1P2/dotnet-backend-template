@@ -8,7 +8,8 @@ namespace Dungeon.Domain.Services.Randomness;
 public enum RandomStream : uint
 {
     Layout = 1,
-    RoomShapes = 2,
+
+    // 2 was RoomShapes, no longer drawn from: never reuse it for another stage.
     Content = 3,
     RoomTemplates = 4,
 }
