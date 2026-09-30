@@ -17,10 +17,4 @@
     <ProjectReference Include="..\Dungeon.Contracts\Dungeon.Contracts.csproj" />
     <ProjectReference Include="..\Dungeon.Domain\Dungeon.Domain.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\.dockerignore">
-      <Link>.dockerignore</Link>
-    </Content>
-  </ItemGroup>
 </Project>
