@@ -39,7 +39,7 @@ public static class DungeonTestData
     }
 
     /// <summary>
-    /// Everything the generator decides, as text: tiles (walls, doors, obstacles, stairs),
+    /// Everything the generator decides, as text: tiles (walls, doors, obstacles, gates),
     /// rooms (type, bounds, depth, connections) and elements (type, position, room).
     /// Two dungeons are identical exactly when their snapshots are equal.
     /// </summary>
@@ -157,15 +157,8 @@ public static class DungeonTestData
         return null;
     }
 
-    /// <summary>
-    /// Every walkable tile reachable from <paramref name="from"/>, moving one tile at a time,
-    /// with the gate of the boss room open or closed.
-    /// </summary>
-    public static HashSet<Position> ReachableFrom(
-        DungeonFloor floor,
-        Position from,
-        bool gateIsOpen = true
-    )
+    /// <summary>Every walkable tile reachable from <paramref name="from"/>, one tile at a time.</summary>
+    public static HashSet<Position> ReachableFrom(DungeonFloor floor, Position from)
     {
         HashSet<Position> visited = [from];
         Queue<Position> queue = new([from]);
@@ -176,9 +169,7 @@ public static class DungeonTestData
             foreach (Direction direction in Enum.GetValues<Direction>())
             {
                 Position next = current.Step(direction);
-                bool passable =
-                    floor.IsWalkable(next) && (gateIsOpen || floor.GetCell(next) != CellType.Gate);
-                if (passable && visited.Add(next))
+                if (floor.IsWalkable(next) && visited.Add(next))
                 {
                     queue.Enqueue(next);
                 }

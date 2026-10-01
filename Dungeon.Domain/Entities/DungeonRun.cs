@@ -38,8 +38,8 @@ public sealed class DungeonRun
     public int Turn { get; private set; }
 
     /// <summary>
-    /// Whether the boss of the current floor is defeated, which opens the gate to the stairs
-    /// room. Reset on arrival at a new floor.
+    /// Whether the boss of the current floor is defeated, which opens the gate down to the
+    /// next floor. Reset on arrival at a new floor.
     /// </summary>
     public bool IsFloorBossDefeated { get; private set; }
 
@@ -78,8 +78,10 @@ public sealed class DungeonRun
     /// <summary>
     /// Moves the hero exactly one tile. Walls, obstacles, the void, anything outside the floor
     /// and the gate of a boss still standing are rejected; the run is left unchanged when a
-    /// move is refused.
+    /// move is refused. Walking into the open gate takes the party down: the hero arrives at
+    /// the entrance of the next floor.
     /// </summary>
+    /// <returns>Where the hero stands after the move, on the current floor.</returns>
     public Position MoveHero(Direction direction, GeneratedDungeon dungeon)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
@@ -91,17 +93,14 @@ public sealed class DungeonRun
         }
 
         CellType cell = floor.GetCell(target);
+        if (cell == CellType.Gate)
+        {
+            return GoDown(target, floor, dungeon);
+        }
+
         if (!cell.IsWalkable())
         {
             throw new InvalidMoveException(target, $"a {cell} tile is not walkable");
-        }
-
-        if (cell == CellType.Gate && !IsFloorBossDefeated)
-        {
-            throw new InvalidMoveException(
-                target,
-                "the gate stays locked until the boss of this floor is defeated"
-            );
         }
 
         HeroX = target.X;
@@ -111,14 +110,19 @@ public sealed class DungeonRun
         return target;
     }
 
-    /// <summary>Takes the stairs the hero stands on and arrives at the next floor's entrance.</summary>
-    public int TakeStairsDown(GeneratedDungeon dungeon)
+    private Position GoDown(Position gate, DungeonFloor floor, GeneratedDungeon dungeon)
     {
-        DungeonFloor floor = GetCurrentFloor(dungeon);
-
-        if (floor.GetCell(HeroPosition) != CellType.StairsDown)
+        if (!IsFloorBossDefeated)
         {
-            throw new InvalidMoveException(HeroPosition, "there are no stairs down here");
+            throw new InvalidMoveException(
+                gate,
+                "the gate stays locked until the boss of this floor is defeated"
+            );
+        }
+
+        if (floor.IsFinalFloor)
+        {
+            throw new InvalidMoveException(gate, "there is no floor below the last one");
         }
 
         CurrentFloor++;
@@ -128,12 +132,12 @@ public sealed class DungeonRun
         IsFloorBossDefeated = false;
         Turn++;
 
-        return CurrentFloor;
+        return entrance;
     }
 
     /// <summary>
-    /// Records the victory over the boss of the current floor: the gate to the stairs opens,
-    /// and defeating the boss of the last floor wins the run. The fight itself belongs to
+    /// Records the victory over the boss of the current floor: the gate down opens, and
+    /// defeating the boss of the last floor wins the run. The fight itself belongs to
     /// Combat; the hero must be in the boss room. Recording it twice changes nothing.
     /// </summary>
     public void DefeatFloorBoss(GeneratedDungeon dungeon)

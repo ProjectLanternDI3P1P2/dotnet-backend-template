@@ -1,7 +1,7 @@
 namespace Dungeon.Domain.Enums;
 
 // Byte-sized: a 40-room floor holds about 20,000 tiles and generated dungeons are cached.
-// New values are only ever appended: the numbers are part of the golden-master snapshot.
+// The numbers are part of the golden-master snapshot: changing them changes every dungeon.
 public enum CellType : byte
 {
     /// <summary>Outside the dungeon, or a pit inside a room: never walkable.</summary>
@@ -12,8 +12,6 @@ public enum CellType : byte
 
     /// <summary>A barrel, jar or pot inside a room. Blocks movement.</summary>
     Obstacle,
-    StairsDown,
-    StairsUp,
 
     /// <summary>A stone column inside a room. Blocks movement.</summary>
     Pillar,
@@ -22,30 +20,35 @@ public enum CellType : byte
     Fence,
 
     /// <summary>
-    /// The door between a boss room and the stairs room. Part of the floor's layout like any
-    /// door, but the hero may only cross it once the boss of the floor is defeated
-    /// (<see cref="Entities.DungeonRun.MoveHero"/>).
+    /// The way down, in the north wall of the boss room of every floor but the last. Locked
+    /// until the boss of the floor is defeated; then walking into it takes the party to the
+    /// next floor (<see cref="Entities.DungeonRun.MoveHero"/>). Nobody ever stands on it.
     /// </summary>
     Gate,
 
     /// <summary>A sewer grate in the floor. Walkable.</summary>
     Grate,
+
+    /// <summary>A pool of still water inside a room. Never walkable.</summary>
+    Water,
+
+    /// <summary>Molten rock: a pool of lava, in the lair of a boss. Never walkable.</summary>
+    Lava,
+
+    /// <summary>
+    /// A stone tomb. Tombs lie side by side, two or three tiles long, and block movement.
+    /// </summary>
+    Tomb,
 }
 
 public static class CellTypeExtensions
 {
     /// <summary>
-    /// Whether the tile can be walked on, as far as the layout goes. A <see cref="CellType.Gate"/>
-    /// counts as walkable here; whether it is open depends on the run.
+    /// Whether the hero can stand on the tile. The gate is not: it is a door in a wall, which
+    /// takes the party down once open.
     /// </summary>
     public static bool IsWalkable(this CellType cellType)
     {
-        return cellType
-            is CellType.Floor
-                or CellType.Door
-                or CellType.StairsDown
-                or CellType.StairsUp
-                or CellType.Grate
-                or CellType.Gate;
+        return cellType is CellType.Floor or CellType.Door or CellType.Grate;
     }
 }

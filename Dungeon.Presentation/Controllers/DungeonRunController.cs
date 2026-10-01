@@ -2,7 +2,6 @@ using Dungeon.Application.Features.DungeonRunUseCase.CreateDungeonRun;
 using Dungeon.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
-using Dungeon.Application.Features.DungeonRunUseCase.TakeStairsDown;
 using Dungeon.Presentation.DTO;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -51,7 +50,11 @@ public sealed class DungeonRunController(IMediator mediator, ILogger logger) : C
         return Ok(run);
     }
 
-    /// <summary>Moves the hero one tile. 409 when the target tile is not walkable.</summary>
+    /// <summary>
+    /// Moves the hero one tile. Walking into the open gate of the boss room takes the party
+    /// down to the next floor. 409 when the target tile is not walkable, or the gate still
+    /// locked.
+    /// </summary>
     [HttpPost("{runId:guid}/moves")]
     public async Task<IActionResult> Move(
         Guid runId,
@@ -71,22 +74,9 @@ public sealed class DungeonRunController(IMediator mediator, ILogger logger) : C
         return Ok(run);
     }
 
-    /// <summary>Takes the stairs the hero stands on. 409 when there are none.</summary>
-    [HttpPost("{runId:guid}/descents")]
-    public async Task<IActionResult> Descend(Guid runId, CancellationToken cancellationToken)
-    {
-        logger.Information("Received request to descend in dungeon run {RunId}.", runId);
-
-        await mediator.Send(new TakeStairsDownCommand(runId), cancellationToken);
-        var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
-
-        logger.Information("Dungeon run {RunId} reached floor {Floor}.", runId, run.CurrentFloor);
-        return Ok(run);
-    }
-
     /// <summary>
-    /// Records the defeat of the current floor's boss, which opens the gate to the stairs
-    /// (or wins the run on the last floor). For Combat to call once the fight is won.
+    /// Records the defeat of the current floor's boss, which opens the gate down (or wins the
+    /// run on the last floor). For Combat to call once the fight is won.
     /// 409 when the hero is not in the boss room.
     /// </summary>
     [HttpPost("{runId:guid}/boss-defeats")]

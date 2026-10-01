@@ -70,7 +70,10 @@ public sealed class DungeonFloor
 
     public IReadOnlyList<DungeonElement> Elements { get; }
 
-    /// <summary>Where the party stands when it arrives on this floor.</summary>
+    /// <summary>
+    /// Where the party stands when it arrives on this floor: at the foot of the ladder it
+    /// climbs down, in the middle of the start room.
+    /// </summary>
     public Position Entrance { get; }
 
     public bool Contains(Position position)

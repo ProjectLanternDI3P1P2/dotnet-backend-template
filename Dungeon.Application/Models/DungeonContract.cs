@@ -36,12 +36,13 @@ public static class DungeonContract
             CellType.Wall => '#',
             CellType.Door => '+',
             CellType.Obstacle => 'o',
-            CellType.StairsDown => '>',
-            CellType.StairsUp => '<',
             CellType.Pillar => 'I',
             CellType.Fence => '=',
             CellType.Gate => 'G',
             CellType.Grate => 'g',
+            CellType.Water => '~',
+            CellType.Lava => '^',
+            CellType.Tomb => 'T',
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -53,12 +54,13 @@ public static class DungeonContract
             CellType.Wall => "wall",
             CellType.Door => "door",
             CellType.Obstacle => "obstacle",
-            CellType.StairsDown => "stairsDown",
-            CellType.StairsUp => "stairsUp",
             CellType.Pillar => "pillar",
             CellType.Fence => "fence",
             CellType.Gate => "gate",
             CellType.Grate => "grate",
+            CellType.Water => "water",
+            CellType.Lava => "lava",
+            CellType.Tomb => "tomb",
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -80,7 +82,6 @@ public static class DungeonContract
             RoomType.Treasure => "treasure",
             RoomType.Empty => "empty",
             RoomType.Boss => "boss",
-            RoomType.Stairs => "stairs",
             _ => throw new ArgumentOutOfRangeException(nameof(roomType), roomType, null),
         };
 

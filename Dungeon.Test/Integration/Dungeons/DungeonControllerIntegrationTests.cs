@@ -30,7 +30,7 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
         run.Hero.Should().Be(map.Entrance);
         run.FloorCount.Should().Be(4);
         run.FloorBossDefeated.Should().BeFalse();
-        map.Rooms.Count(room => room.Type != "stairs").Should().Be(10);
+        map.Rooms.Should().HaveCount(10);
         map.Elements.Should().ContainSingle(element => element.Type == "boss");
     }
 
@@ -145,11 +145,21 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
         var run = await (
             await PostRunAsync(Guid.NewGuid())
         ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
+        GetDungeonMapResult map = await GetMapAsync(run!.Seed);
+
+        // The seed is random, and so is the start room: a column may stand beside the
+        // entrance. The party steps onto whichever neighbouring tile is plain floor.
+        (string direction, int dx, int dy) = new[]
+        {
+            ("east", 1, 0),
+            ("west", -1, 0),
+            ("south", 0, 1),
+        }.First(move => map.Rows[run.Hero.Y + move.Item3][run.Hero.X + move.Item2] == '.');
 
         // Act
         HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
-            $"/api/v1/dungeon-runs/{run!.Id}/moves",
-            new MoveHeroDto { Direction = "east" },
+            $"/api/v1/dungeon-runs/{run.Id}/moves",
+            new MoveHeroDto { Direction = direction },
             TestContext.Current.CancellationToken
         );
         var moved = await response.Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
@@ -158,7 +168,8 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        moved!.Hero.X.Should().Be(run.Hero.X + 1);
+        moved!.Hero.X.Should().Be(run.Hero.X + dx);
+        moved.Hero.Y.Should().Be(run.Hero.Y + dy);
         moved.Turn.Should().Be(1);
     }
 

@@ -14,7 +14,7 @@ public sealed class GetDungeonRunByIdResult
     public PositionResult Hero { get; init; } = new(0, 0);
     public int Turn { get; init; }
 
-    /// <summary>The boss of the current floor is defeated: the gate to the stairs is open.</summary>
+    /// <summary>The boss of the current floor is defeated: the gate down is open.</summary>
     public bool FloorBossDefeated { get; init; }
 
     /// <summary>The room the hero stands in; null in a corridor or a doorway.</summary>

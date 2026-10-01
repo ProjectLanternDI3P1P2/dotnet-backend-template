@@ -19,8 +19,10 @@ public sealed class DungeonGenerator
     /// <remarks>
     /// Version 2: larger and more varied rooms, room layouts, pillars, fences, traps.
     /// Version 3: hand-drawn room templates, a boss on every floor guarding the stairs room.
+    /// Version 4: no stairs room; the party climbs down a ladder in the middle of the start
+    /// room and leaves through the gate of the boss room. Water, lava and tombs.
     /// </remarks>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public GeneratedDungeon Generate(Seed seed, DungeonSettings settings)
     {

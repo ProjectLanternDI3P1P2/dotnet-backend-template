@@ -17,12 +17,10 @@ public class DungeonGeneratorRulesTests
         // Act
         GeneratedDungeon dungeon = DungeonTestData.Generate(new Seed(seedValue));
 
-        // Assert: the stairs rooms, which only hold the way down, are not counted.
+        // Assert
         dungeon.RoomCount.Should().Be(40);
         dungeon.Floors.Should().HaveCount(4);
-        dungeon
-            .Floors.Should()
-            .OnlyContain(floor => floor.Rooms.Count(room => room.Type != RoomType.Stairs) == 10);
+        dungeon.Floors.Should().OnlyContain(floor => floor.Rooms.Count == 10);
     }
 
     [Theory]
@@ -31,7 +29,7 @@ public class DungeonGeneratorRulesTests
     {
         foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
         {
-            // Act: walk the tiles one step at a time, as the hero does, gate open.
+            // Act: walk the tiles one step at a time, as the hero does.
             HashSet<Position> reachable = DungeonTestData.ReachableFrom(floor, floor.Entrance);
 
             // Assert
@@ -82,30 +80,37 @@ public class DungeonGeneratorRulesTests
         {
             // Act
             Room bossRoom = floor.Rooms.Single(room => room.Type == RoomType.Boss);
-            Room stairsRoom = floor.Rooms.Single(room => room.Type == RoomType.Stairs);
             DungeonElement boss = floor.Elements.Single(element =>
                 element.Type == ElementType.Boss
             );
             Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
-            List<Position> stairs = DungeonTestData
-                .PositionsOf(floor, CellType.StairsDown)
-                .ToList();
+            Position northOfTheBossRoom = new(bossRoom.GridCell.X, bossRoom.GridCell.Y - 1);
 
-            // Assert: the stairs room lies just north of the boss room, behind the gate.
+            // Assert: the gate stands in the middle of the north wall of the boss room, with
+            // nothing but the void behind it, so it can only be reached through that room.
             boss.RoomId.Should().Be(bossRoom.Id);
-            stairsRoom.ConnectedRoomIds.Should().Equal(bossRoom.Id);
-            stairsRoom
-                .GridCell.Should()
-                .Be(new Position(bossRoom.GridCell.X, bossRoom.GridCell.Y - 1));
             gate.Should().Be(new Position(bossRoom.Center.X, bossRoom.Interior.Y - 1));
-            stairs
-                .Should()
-                .NotBeEmpty()
-                .And.OnlyContain(tile => floor.GetRoomId(tile) == stairsRoom.Id);
-            DungeonTestData
-                .ReachableFrom(floor, floor.Entrance, gateIsOpen: false)
-                .Should()
-                .NotIntersectWith(stairs);
+            floor.GetRoomId(gate.Step(Direction.South)).Should().Be(bossRoom.Id);
+            floor.IsWalkable(gate.Step(Direction.North)).Should().BeFalse();
+            floor.Rooms.Should().NotContain(room => room.GridCell == northOfTheBossRoom);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_ThePartyClimbsDownIntoTheMiddleOfTheStartRoom(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Act
+            Room start = floor.Rooms[0];
+
+            // Assert: the ladder stands on plain floor, in the middle of the start room, and
+            // the start room has no door of its own: only the corridors to other rooms.
+            start.Type.Should().Be(RoomType.Start);
+            floor.Entrance.Should().Be(start.Center);
+            floor.GetCell(floor.Entrance).Should().Be(CellType.Floor);
+            floor.IsWalkable(floor.Entrance).Should().BeTrue();
         }
     }
 
@@ -128,8 +133,6 @@ public class DungeonGeneratorRulesTests
         boss.RoomId.Should().Be(bossRoom.Id);
         bossRoom.ConnectedRoomIds.Should().ContainSingle();
         bossRoom.Depth.Should().Be(deepestDeadEnd);
-        floor.Rooms.Should().NotContain(room => room.Type == RoomType.Stairs);
-        DungeonTestData.PositionsOf(floor, CellType.StairsDown).Should().BeEmpty();
         DungeonTestData.PositionsOf(floor, CellType.Gate).Should().BeEmpty();
     }
 
@@ -150,7 +153,6 @@ public class DungeonGeneratorRulesTests
             counts[RoomType.Treasure].Should().Be(1);
             counts[RoomType.Empty].Should().Be(1);
             counts[RoomType.Combat].Should().Be(6);
-            counts.GetValueOrDefault(RoomType.Stairs).Should().Be(floor.IsFinalFloor ? 0 : 1);
             floor.Rooms[0].Type.Should().Be(RoomType.Start);
         }
     }
@@ -240,7 +242,7 @@ public class DungeonGeneratorRulesTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(5)]
-    public void Generate_OtherFloorCounts_SplitTheFortyRoomsAndLinkFloorsWithStairs(int floorCount)
+    public void Generate_OtherFloorCounts_SplitTheFortyRoomsAndLinkFloorsWithGates(int floorCount)
     {
         // Act
         GeneratedDungeon dungeon = DungeonTestData.Generate(
@@ -259,13 +261,12 @@ public class DungeonGeneratorRulesTests
 
         foreach (DungeonFloor floor in dungeon.Floors.Take(floorCount - 1))
         {
-            DungeonTestData.PositionsOf(floor, CellType.StairsDown).Should().NotBeEmpty();
             DungeonTestData.PositionsOf(floor, CellType.Gate).Should().ContainSingle();
         }
 
-        foreach (DungeonFloor floor in dungeon.Floors.Skip(1))
+        foreach (DungeonFloor floor in dungeon.Floors)
         {
-            floor.GetCell(floor.Entrance).Should().Be(CellType.StairsUp);
+            floor.Entrance.Should().Be(floor.Rooms[0].Center);
         }
     }
 
