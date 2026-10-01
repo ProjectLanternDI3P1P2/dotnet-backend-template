@@ -8,8 +8,7 @@ namespace Dungeon.Domain.ValueObjects;
 public sealed record DungeonSettings
 {
     /// <summary>
-    /// Business rule of US-DUNGEON-01: a dungeon contains exactly 40 rooms. The stairs rooms,
-    /// which only hold the way down, are not counted.
+    /// Business rule of US-DUNGEON-01: a dungeon contains exactly 40 rooms.
     /// </summary>
     public const int DefaultRoomCount = 40;
 

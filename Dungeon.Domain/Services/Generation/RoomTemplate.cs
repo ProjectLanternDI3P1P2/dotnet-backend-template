@@ -14,20 +14,27 @@ public sealed class RoomTemplate
     public const char PillarTile = 'I';
     public const char FenceTile = '=';
     public const char GrateTile = 'g';
+    public const char WaterTile = '~';
+    public const char LavaTile = '^';
+    public const char TombTile = 'T';
     public const char EnemySpot = 'e';
     public const char TrapSpot = 't';
     public const char TreasureSpot = '$';
     public const char BossSpot = 'B';
-    public const char StairsDownTile = '>';
-    public const char ArrivalSpot = '<';
 
-    public RoomTemplate(string name, IReadOnlyList<RoomType> roomTypes, IReadOnlyList<string> rows)
+    public RoomTemplate(
+        string name,
+        IReadOnlyList<RoomType> roomTypes,
+        IReadOnlyList<string> rows,
+        RoomRarity rarity = RoomRarity.Common
+    )
     {
         ArgumentOutOfRangeException.ThrowIfZero(rows.Count);
 
         Name = name;
         RoomTypes = roomTypes;
         Rows = rows;
+        Rarity = rarity;
         Width = rows[0].Length;
         Height = rows.Count;
     }
@@ -38,6 +45,9 @@ public sealed class RoomTemplate
     public IReadOnlyList<RoomType> RoomTypes { get; }
 
     public IReadOnlyList<string> Rows { get; }
+
+    /// <summary>How often the template comes up among those that fit a room.</summary>
+    public RoomRarity Rarity { get; }
 
     public int Width { get; }
 
@@ -50,7 +60,7 @@ public sealed class RoomTemplate
     }
 
     /// <summary>What the tile is made of; the spots for elements are floor tiles.</summary>
-    public static CellType CellTypeOf(char tile, bool hasStairsUp)
+    public static CellType CellTypeOf(char tile)
     {
         return tile switch
         {
@@ -60,8 +70,9 @@ public sealed class RoomTemplate
             PillarTile => CellType.Pillar,
             FenceTile => CellType.Fence,
             GrateTile => CellType.Grate,
-            StairsDownTile => CellType.StairsDown,
-            ArrivalSpot => hasStairsUp ? CellType.StairsUp : CellType.Floor,
+            WaterTile => CellType.Water,
+            LavaTile => CellType.Lava,
+            TombTile => CellType.Tomb,
             FloorTile or EnemySpot or TrapSpot or TreasureSpot or BossSpot => CellType.Floor,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(tile),

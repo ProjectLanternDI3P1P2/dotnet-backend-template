@@ -11,14 +11,8 @@ public enum RoomType
     Empty,
 
     /// <summary>
-    /// The last room of every floor. Its boss guards the gate to the stairs room; on the last
-    /// floor, it is the final boss.
+    /// The last room of every floor. Its boss guards the gate in its north wall, the way down
+    /// to the next floor; on the last floor, it is the final boss.
     /// </summary>
     Boss,
-
-    /// <summary>
-    /// Behind the boss room of every floor but the last: holds the stairs down. Not counted
-    /// in the 40 rooms of a dungeon.
-    /// </summary>
-    Stairs,
 }

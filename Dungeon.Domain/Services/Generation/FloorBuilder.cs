@@ -43,9 +43,13 @@ internal static class FloorBuilder
         (int width, int height) = PlaceRooms(rooms, minGridX, minGridY);
 
         TileGrid grid = new(width, height);
-        StampRooms(grid, rooms, hasStairsUp: floorIndex > 0);
+        StampRooms(grid, rooms);
         CarveCorridors(grid, rooms);
         RaiseWalls(grid);
+        if (!isFinalFloor)
+        {
+            OpenGateDown(grid, rooms.Single(room => room.Type == RoomType.Boss));
+        }
 
         List<DungeonElement> elements = PlaceElements(
             DeterministicRandom.ForStream(seed, RandomStream.Content, floorIndex),
@@ -72,13 +76,16 @@ internal static class FloorBuilder
             grid.Cells,
             frozenRooms,
             elements,
-            rooms[0].SpotsOf(RoomTemplate.ArrivalSpot)[0]
+            // The party climbs down a ladder in the middle of the start room, whose
+            // template keeps its centre walkable.
+            rooms[0].Center
         );
     }
 
     /// <summary>
-    /// A template per room, mirrored or not. A template is not used twice on a floor while
-    /// another one of the same kind is still available.
+    /// A template per room, mirrored or not, drawn by rarity: a rare room comes up far less
+    /// often than a common one. A template is not used twice on a floor while another one of
+    /// the same kind is still available.
     /// </summary>
     private static void ChooseTemplates(DeterministicRandom random, List<RoomDraft> rooms)
     {
@@ -93,10 +100,28 @@ internal static class FloorBuilder
                 .Where(template => !used.Contains(template.Name))
                 .ToList();
 
-            room.Template = random.Pick(fresh.Count > 0 ? fresh : candidates);
+            room.Template = PickByRarity(random, fresh.Count > 0 ? fresh : candidates);
             room.IsMirrored = random.Chance(50);
             used.Add(room.Template.Name);
         }
+    }
+
+    private static RoomTemplate PickByRarity(
+        DeterministicRandom random,
+        List<RoomTemplate> templates
+    )
+    {
+        int roll = random.NextInt(templates.Sum(template => (int)template.Rarity));
+        foreach (RoomTemplate template in templates)
+        {
+            roll -= (int)template.Rarity;
+            if (roll < 0)
+            {
+                return template;
+            }
+        }
+
+        throw new InvalidOperationException("The rarities add up to the roll.");
     }
 
     /// <summary>Sizes the grid columns and rows, then centres each room in its cell.</summary>
@@ -154,7 +179,7 @@ internal static class FloorBuilder
         return starts;
     }
 
-    private static void StampRooms(TileGrid grid, List<RoomDraft> rooms, bool hasStairsUp)
+    private static void StampRooms(TileGrid grid, List<RoomDraft> rooms)
     {
         foreach (RoomDraft room in rooms)
         {
@@ -165,7 +190,7 @@ internal static class FloorBuilder
                 {
                     char tile = template.At(x, y, room.IsMirrored);
                     Position position = new(room.Interior.X + x, room.Interior.Y + y);
-                    grid[position.X, position.Y] = RoomTemplate.CellTypeOf(tile, hasStairsUp);
+                    grid[position.X, position.Y] = RoomTemplate.CellTypeOf(tile);
 
                     if (tile is not (RoomTemplate.FloorTile or RoomTemplate.VoidTile))
                     {
@@ -221,11 +246,7 @@ internal static class FloorBuilder
                     }
 
                     grid[x, firstDoor] = CellType.Door;
-
-                    // The stairs room always lies north of the boss room: the door in the
-                    // boss room's north wall is the gate, open once the boss is defeated.
-                    bool isGate = first.Type == RoomType.Stairs && second.Type == RoomType.Boss;
-                    grid[x, secondDoor] = isGate ? CellType.Gate : CellType.Door;
+                    grid[x, secondDoor] = CellType.Door;
                 }
             }
         }
@@ -249,23 +270,29 @@ internal static class FloorBuilder
         }
     }
 
+    /// <summary>
+    /// The way down, in the middle of the north wall of the boss room: no corridor ever
+    /// arrives there, since no room stands north of the boss room.
+    /// </summary>
+    private static void OpenGateDown(TileGrid grid, RoomDraft boss)
+    {
+        grid[boss.Center.X, boss.Interior.Y - 1] = CellType.Gate;
+    }
+
     private static List<DungeonElement> PlaceElements(
         DeterministicRandom random,
         List<RoomDraft> rooms
     )
     {
         List<DungeonElement> elements = [];
-        int maxDepth = Math.Max(
-            1,
-            rooms.Where(room => room.Type != RoomType.Stairs).Max(room => room.Depth)
-        );
+        int maxDepth = Math.Max(1, rooms.Max(room => room.Depth));
 
         void Add(ElementType type, Position position, RoomDraft room) =>
             elements.Add(new DungeonElement(elements.Count, type, position, room.Id));
 
         foreach (RoomDraft room in rooms)
         {
-            if (room.Type is RoomType.Start or RoomType.Stairs)
+            if (room.Type == RoomType.Start)
             {
                 continue;
             }
@@ -280,6 +307,14 @@ internal static class FloorBuilder
             {
                 case RoomType.Boss:
                     Add(ElementType.Boss, room.SpotsOf(RoomTemplate.BossSpot)[0], room);
+
+                    // The grandest lairs post guards around their master: every enemy
+                    // spot the template lays down is manned, like its traps.
+                    foreach (Position guard in room.SpotsOf(RoomTemplate.EnemySpot))
+                    {
+                        Add(ElementType.Enemy, guard, room);
+                    }
+
                     break;
 
                 case RoomType.Treasure:

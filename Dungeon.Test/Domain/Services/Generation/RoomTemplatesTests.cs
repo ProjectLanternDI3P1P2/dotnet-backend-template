@@ -7,8 +7,8 @@ namespace Dungeon.Test.Domain.Services.Generation;
 /// <summary>The hand-drawn rooms: every template must fit the generator's rules.</summary>
 public class RoomTemplatesTests
 {
-    private const string WalkableTiles = ".etB$g<>";
-    private const string KnownTiles = ".# oI=getB$<>";
+    private const string WalkableTiles = ".etB$g";
+    private const string KnownTiles = ".# oI=getB$~^T";
 
     public static TheoryData<string> TemplateNames()
     {
@@ -28,12 +28,11 @@ public class RoomTemplatesTests
     }
 
     [Theory]
-    [InlineData(RoomType.Start, 3)]
-    [InlineData(RoomType.Combat, 10)]
-    [InlineData(RoomType.Treasure, 3)]
-    [InlineData(RoomType.Empty, 3)]
-    [InlineData(RoomType.Boss, 3)]
-    [InlineData(RoomType.Stairs, 3)]
+    [InlineData(RoomType.Start, 5)]
+    [InlineData(RoomType.Combat, 25)]
+    [InlineData(RoomType.Treasure, 7)]
+    [InlineData(RoomType.Empty, 12)]
+    [InlineData(RoomType.Boss, 8)]
     public void All_OfferSeveralTemplatesForEveryKindOfRoom(RoomType roomType, int minimum)
     {
         RoomTemplates
@@ -96,7 +95,11 @@ public class RoomTemplatesTests
         // Assert
         if (template.RoomTypes.Contains(RoomType.Start))
         {
-            Count(RoomTemplate.ArrivalSpot).Should().Be(1);
+            // The ladder the party climbs down stands in the middle, on plain floor.
+            template
+                .Rows[template.Height / 2][template.Width / 2]
+                .Should()
+                .Be(RoomTemplate.FloorTile);
         }
 
         if (template.RoomTypes.Contains(RoomType.Combat))
@@ -117,17 +120,9 @@ public class RoomTemplatesTests
             template.Rows[0][template.Width / 2].Should().Be(RoomTemplate.FloorTile);
         }
 
-        if (template.RoomTypes.Contains(RoomType.Stairs))
-        {
-            Count(RoomTemplate.StairsDownTile).Should().BeGreaterThanOrEqualTo(1);
-        }
-
         Count(RoomTemplate.BossSpot)
             .Should()
             .Be(template.RoomTypes.Contains(RoomType.Boss) ? 1 : 0);
-        Count(RoomTemplate.ArrivalSpot)
-            .Should()
-            .Be(template.RoomTypes.Contains(RoomType.Start) ? 1 : 0);
     }
 
     [Theory]
@@ -136,8 +131,57 @@ public class RoomTemplatesTests
     {
         RoomTemplate template = Find(name);
 
-        template.Width.Should().BeInRange(7, 21);
-        template.Height.Should().BeInRange(5, 13);
+        template.Width.Should().BeInRange(7, 25);
+        template.Height.Should().BeInRange(5, 19);
+    }
+
+    [Theory]
+    [MemberData(nameof(TemplateNames))]
+    public void Template_HasNoWallOneTileThick(string name)
+    {
+        // Arrange: a wall, or the void that becomes one, between two open tiles. Seen from
+        // the front, such a wall reads as a flat slab.
+        RoomTemplate template = Find(name);
+        bool IsOpen(int x, int y) =>
+            x >= 0
+            && y >= 0
+            && x < template.Width
+            && y < template.Height
+            && template.Rows[y][x] is not (RoomTemplate.WallTile or RoomTemplate.VoidTile);
+
+        // Act
+        IEnumerable<(int X, int Y)> thin =
+            from y in Enumerable.Range(0, template.Height)
+            from x in Enumerable.Range(0, template.Width)
+            where template.Rows[y][x] is RoomTemplate.WallTile or RoomTemplate.VoidTile
+            where (IsOpen(x - 1, y) && IsOpen(x + 1, y)) || (IsOpen(x, y - 1) && IsOpen(x, y + 1))
+            select (x, y);
+
+        // Assert
+        thin.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void All_KeepSomeRoomsRare()
+    {
+        RoomTemplates.All.Should().Contain(template => template.Rarity == RoomRarity.Rare);
+        RoomTemplates.All.Should().Contain(template => template.Rarity == RoomRarity.Uncommon);
+        RoomTemplates
+            .All.Count(template => template.Rarity == RoomRarity.Common)
+            .Should()
+            .BeGreaterThan(RoomTemplates.All.Count / 2);
+    }
+
+    [Fact]
+    public void All_ComeInManySizesAndShapes()
+    {
+        RoomTemplates.All.Should().Contain(template => template.Width * template.Height <= 45);
+        RoomTemplates.All.Should().Contain(template => template.Width * template.Height >= 400);
+        // Shaped rooms: the void around their tiles.
+        RoomTemplates
+            .All.Count(template => template.Rows[0].Contains(RoomTemplate.VoidTile))
+            .Should()
+            .BeGreaterThanOrEqualTo(4);
     }
 
     [Fact]
@@ -148,6 +192,37 @@ public class RoomTemplatesTests
         template.At(0, 0, mirrored: false).Should().Be('o');
         template.At(2, 0, mirrored: true).Should().Be('o');
         template.At(0, 2, mirrored: true).Should().Be('I');
+    }
+
+    [Theory]
+    [MemberData(nameof(TemplateNames))]
+    public void Template_LaysItsTombsTwoOrThreeSideBySide(string name)
+    {
+        // Arrange: a tomb is drawn across the run of tiles it covers.
+        RoomTemplate template = Find(name);
+
+        foreach (string row in template.Rows)
+        {
+            // Act
+            IEnumerable<int> runs = row.Split(
+                    row.Where(tile => tile != RoomTemplate.TombTile).Distinct().ToArray(),
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+                .Select(run => run.Length);
+
+            // Assert
+            runs.Should().OnlyContain(length => length == 2 || length == 3);
+        }
+    }
+
+    [Fact]
+    public void All_HaveWaterLavaAndTombsSomewhere()
+    {
+        string tiles = string.Concat(RoomTemplates.All.SelectMany(template => template.Rows));
+
+        tiles.Contains(RoomTemplate.WaterTile).Should().BeTrue();
+        tiles.Contains(RoomTemplate.LavaTile).Should().BeTrue();
+        tiles.Contains(RoomTemplate.TombTile).Should().BeTrue();
     }
 
     private static RoomTemplate Find(string name) =>

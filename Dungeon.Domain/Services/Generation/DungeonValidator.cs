@@ -50,7 +50,7 @@ public static class DungeonValidator
         List<string> violations
     )
     {
-        int roomCount = floor.Rooms.Count(room => room.Type != RoomType.Stairs);
+        int roomCount = floor.Rooms.Count;
         if (roomCount != expectedRoomCount)
         {
             violations.Add($"{roomCount} rooms instead of {expectedRoomCount}");
@@ -91,27 +91,24 @@ public static class DungeonValidator
         }
 
         Room start = floor.Rooms[0];
-        if (!start.Interior.Contains(floor.Entrance))
+        if (floor.Entrance != start.Center || floor.GetCell(floor.Entrance) != CellType.Floor)
         {
-            violations.Add("the entrance is not in the start room");
+            violations.Add("the party must arrive on the floor, in the middle of the start room");
         }
     }
 
     /// <summary>
-    /// One boss per floor, in the boss room. On every floor but the last, the stairs room lies
-    /// behind the boss room, and the only way in is the gate: the stairs cannot be reached
-    /// without crossing it.
+    /// One boss per floor, in the boss room. On every floor but the last, the party leaves
+    /// through the gate in the north wall of the boss room, which it can only walk into from
+    /// that room.
     /// </summary>
     private static void CheckExit(DungeonFloor floor, List<string> violations)
     {
         List<Room> bossRooms = floor.Rooms.Where(room => room.Type == RoomType.Boss).ToList();
-        List<Room> stairsRooms = floor.Rooms.Where(room => room.Type == RoomType.Stairs).ToList();
         List<DungeonElement> bosses = floor
             .Elements.Where(element => element.Type == ElementType.Boss)
             .ToList();
-        List<Position> stairsDown = PositionsOf(floor, CellType.StairsDown);
         List<Position> gates = PositionsOf(floor, CellType.Gate);
-        int stairsUp = PositionsOf(floor, CellType.StairsUp).Count;
 
         if (bossRooms.Count != 1 || bosses.Count != 1 || bosses[0].RoomId != bossRooms[0].Id)
         {
@@ -120,45 +117,30 @@ public static class DungeonValidator
 
         if (floor.IsFinalFloor)
         {
-            if (stairsRooms.Count != 0 || stairsDown.Count != 0 || gates.Count != 0)
+            if (gates.Count != 0)
             {
-                violations.Add("the final floor has no stairs down and no gate");
+                violations.Add("the final floor has no gate down");
             }
         }
-        else if (stairsRooms.Count != 1 || gates.Count != 1 || stairsDown.Count == 0)
+        else if (gates.Count != 1)
         {
-            violations.Add("a floor needs one stairs room, stairs down and one gate");
+            violations.Add($"{gates.Count} gates down instead of 1");
         }
         else
         {
-            Room stairsRoom = stairsRooms[0];
-            bool connectedToBossOnly =
+            Position gate = gates[0];
+            Position below = gate.Step(Direction.South);
+            bool enteredFromBossRoom =
                 bossRooms.Count == 1
-                && stairsRoom.ConnectedRoomIds.SequenceEqual([bossRooms[0].Id]);
-            if (!connectedToBossOnly)
+                && floor.IsWalkable(below)
+                && floor.GetRoomId(below) == bossRooms[0].Id;
+            bool facesNothing = new[] { Direction.North, Direction.East, Direction.West }.All(
+                direction => !floor.IsWalkable(gate.Step(direction))
+            );
+            if (!enteredFromBossRoom || !facesNothing)
             {
-                violations.Add("the stairs room must be reached from the boss room only");
+                violations.Add("the gate down must stand in the north wall of the boss room");
             }
-
-            if (stairsDown.Any(stairs => floor.GetRoomId(stairs) != stairsRoom.Id))
-            {
-                violations.Add("stairs down lie outside the stairs room");
-            }
-
-            if (Reach(floor, gateIsOpen: false).Intersect(stairsDown).Any())
-            {
-                violations.Add("the stairs down can be reached without crossing the gate");
-            }
-        }
-
-        bool expectsStairsUp = floor.Index > 0;
-        if (stairsUp != (expectsStairsUp ? 1 : 0))
-        {
-            violations.Add($"{stairsUp} stairs up found");
-        }
-        else if (expectsStairsUp && floor.GetCell(floor.Entrance) != CellType.StairsUp)
-        {
-            violations.Add("the stairs up are not at the entrance");
         }
     }
 
@@ -171,7 +153,7 @@ public static class DungeonValidator
             return;
         }
 
-        HashSet<Position> reached = Reach(floor, gateIsOpen: true);
+        HashSet<Position> reached = Reach(floor);
 
         int walkable = 0;
         for (int y = 0; y < floor.Height; y++)
@@ -195,8 +177,8 @@ public static class DungeonValidator
         }
     }
 
-    /// <summary>The walkable tiles reachable from the entrance, through the gate or not.</summary>
-    private static HashSet<Position> Reach(DungeonFloor floor, bool gateIsOpen)
+    /// <summary>The walkable tiles reachable from the entrance.</summary>
+    private static HashSet<Position> Reach(DungeonFloor floor)
     {
         HashSet<Position> reached = [floor.Entrance];
         Queue<Position> queue = new();
@@ -208,9 +190,7 @@ public static class DungeonValidator
             foreach (Direction direction in Enum.GetValues<Direction>())
             {
                 Position next = current.Step(direction);
-                bool passable =
-                    floor.IsWalkable(next) && (gateIsOpen || floor.GetCell(next) != CellType.Gate);
-                if (passable && reached.Add(next))
+                if (floor.IsWalkable(next) && reached.Add(next))
                 {
                     queue.Enqueue(next);
                 }

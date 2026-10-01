@@ -54,7 +54,7 @@ public class GetDungeonMapQueryHandlerTests
         map.Legend["G"].Should().Be("gate");
         map.FloorCount.Should().Be(4);
         map.Rooms.Should().HaveCount(expected.Rooms.Count);
-        map.Rooms.Count(room => room.Type != "stairs").Should().Be(10);
+        map.Rooms.Should().HaveCount(10);
         map.Elements.Should().HaveCount(expected.Elements.Count);
         map.Elements.Should().ContainSingle(element => element.Type == "boss");
         map.Entrance.X.Should().Be(expected.Entrance.X);

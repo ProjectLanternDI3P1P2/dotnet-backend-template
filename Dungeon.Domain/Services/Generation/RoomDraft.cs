@@ -8,7 +8,7 @@ internal sealed class RoomDraft(int id, Position gridCell)
 {
     public int Id { get; } = id;
 
-    /// <summary>Settable: the whole floor may be flipped so that the stairs room lies north.</summary>
+    /// <summary>Settable: the whole floor may be flipped so that the boss room faces the void to the north.</summary>
     public Position GridCell { get; set; } = gridCell;
 
     public List<int> Connections { get; } = [];
