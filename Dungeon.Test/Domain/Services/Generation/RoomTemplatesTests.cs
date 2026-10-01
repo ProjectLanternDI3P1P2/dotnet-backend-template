@@ -28,11 +28,11 @@ public class RoomTemplatesTests
     }
 
     [Theory]
-    [InlineData(RoomType.Start, 3)]
-    [InlineData(RoomType.Combat, 10)]
-    [InlineData(RoomType.Treasure, 3)]
-    [InlineData(RoomType.Empty, 3)]
-    [InlineData(RoomType.Boss, 3)]
+    [InlineData(RoomType.Start, 5)]
+    [InlineData(RoomType.Combat, 25)]
+    [InlineData(RoomType.Treasure, 7)]
+    [InlineData(RoomType.Empty, 12)]
+    [InlineData(RoomType.Boss, 8)]
     public void All_OfferSeveralTemplatesForEveryKindOfRoom(RoomType roomType, int minimum)
     {
         RoomTemplates
@@ -131,8 +131,57 @@ public class RoomTemplatesTests
     {
         RoomTemplate template = Find(name);
 
-        template.Width.Should().BeInRange(7, 21);
-        template.Height.Should().BeInRange(5, 13);
+        template.Width.Should().BeInRange(7, 25);
+        template.Height.Should().BeInRange(5, 19);
+    }
+
+    [Theory]
+    [MemberData(nameof(TemplateNames))]
+    public void Template_HasNoWallOneTileThick(string name)
+    {
+        // Arrange: a wall, or the void that becomes one, between two open tiles. Seen from
+        // the front, such a wall reads as a flat slab.
+        RoomTemplate template = Find(name);
+        bool IsOpen(int x, int y) =>
+            x >= 0
+            && y >= 0
+            && x < template.Width
+            && y < template.Height
+            && template.Rows[y][x] is not (RoomTemplate.WallTile or RoomTemplate.VoidTile);
+
+        // Act
+        IEnumerable<(int X, int Y)> thin =
+            from y in Enumerable.Range(0, template.Height)
+            from x in Enumerable.Range(0, template.Width)
+            where template.Rows[y][x] is RoomTemplate.WallTile or RoomTemplate.VoidTile
+            where (IsOpen(x - 1, y) && IsOpen(x + 1, y)) || (IsOpen(x, y - 1) && IsOpen(x, y + 1))
+            select (x, y);
+
+        // Assert
+        thin.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void All_KeepSomeRoomsRare()
+    {
+        RoomTemplates.All.Should().Contain(template => template.Rarity == RoomRarity.Rare);
+        RoomTemplates.All.Should().Contain(template => template.Rarity == RoomRarity.Uncommon);
+        RoomTemplates
+            .All.Count(template => template.Rarity == RoomRarity.Common)
+            .Should()
+            .BeGreaterThan(RoomTemplates.All.Count / 2);
+    }
+
+    [Fact]
+    public void All_ComeInManySizesAndShapes()
+    {
+        RoomTemplates.All.Should().Contain(template => template.Width * template.Height <= 45);
+        RoomTemplates.All.Should().Contain(template => template.Width * template.Height >= 400);
+        // Shaped rooms: the void around their tiles.
+        RoomTemplates
+            .All.Count(template => template.Rows[0].Contains(RoomTemplate.VoidTile))
+            .Should()
+            .BeGreaterThanOrEqualTo(4);
     }
 
     [Fact]

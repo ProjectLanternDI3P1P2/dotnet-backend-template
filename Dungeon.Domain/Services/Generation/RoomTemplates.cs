@@ -22,7 +22,10 @@ namespace Dungeon.Domain.Services.Generation;
 /// <para>
 /// The templates live in one file per kind of room, in <c>Templates/</c>. A template is
 /// listed in the file of its first kind; a combat room that can also stand empty carries
-/// both kinds.
+/// both kinds. Each has a <see cref="RoomRarity"/>: labyrinths and the like are rare.
+/// Rooms come in every size, from 7 x 5 to 25 x 19, and in every shape: spaces around a
+/// room's tiles (a diamond, a cross, a rotunda) are the void outside it. A wall inside a
+/// room is never one tile thick: seen from the front, it would read as a flat slab.
 /// </para>
 /// </summary>
 public static class RoomTemplates

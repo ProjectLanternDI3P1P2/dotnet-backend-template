@@ -22,13 +22,19 @@ public sealed class RoomTemplate
     public const char TreasureSpot = '$';
     public const char BossSpot = 'B';
 
-    public RoomTemplate(string name, IReadOnlyList<RoomType> roomTypes, IReadOnlyList<string> rows)
+    public RoomTemplate(
+        string name,
+        IReadOnlyList<RoomType> roomTypes,
+        IReadOnlyList<string> rows,
+        RoomRarity rarity = RoomRarity.Common
+    )
     {
         ArgumentOutOfRangeException.ThrowIfZero(rows.Count);
 
         Name = name;
         RoomTypes = roomTypes;
         Rows = rows;
+        Rarity = rarity;
         Width = rows[0].Length;
         Height = rows.Count;
     }
@@ -39,6 +45,9 @@ public sealed class RoomTemplate
     public IReadOnlyList<RoomType> RoomTypes { get; }
 
     public IReadOnlyList<string> Rows { get; }
+
+    /// <summary>How often the template comes up among those that fit a room.</summary>
+    public RoomRarity Rarity { get; }
 
     public int Width { get; }
 

@@ -83,8 +83,9 @@ internal static class FloorBuilder
     }
 
     /// <summary>
-    /// A template per room, mirrored or not. A template is not used twice on a floor while
-    /// another one of the same kind is still available.
+    /// A template per room, mirrored or not, drawn by rarity: a rare room comes up far less
+    /// often than a common one. A template is not used twice on a floor while another one of
+    /// the same kind is still available.
     /// </summary>
     private static void ChooseTemplates(DeterministicRandom random, List<RoomDraft> rooms)
     {
@@ -99,10 +100,28 @@ internal static class FloorBuilder
                 .Where(template => !used.Contains(template.Name))
                 .ToList();
 
-            room.Template = random.Pick(fresh.Count > 0 ? fresh : candidates);
+            room.Template = PickByRarity(random, fresh.Count > 0 ? fresh : candidates);
             room.IsMirrored = random.Chance(50);
             used.Add(room.Template.Name);
         }
+    }
+
+    private static RoomTemplate PickByRarity(
+        DeterministicRandom random,
+        List<RoomTemplate> templates
+    )
+    {
+        int roll = random.NextInt(templates.Sum(template => (int)template.Rarity));
+        foreach (RoomTemplate template in templates)
+        {
+            roll -= (int)template.Rarity;
+            if (roll < 0)
+            {
+                return template;
+            }
+        }
+
+        throw new InvalidOperationException("The rarities add up to the roll.");
     }
 
     /// <summary>Sizes the grid columns and rows, then centres each room in its cell.</summary>
@@ -288,6 +307,14 @@ internal static class FloorBuilder
             {
                 case RoomType.Boss:
                     Add(ElementType.Boss, room.SpotsOf(RoomTemplate.BossSpot)[0], room);
+
+                    // The grandest lairs post guards around their master: every enemy
+                    // spot the template lays down is manned, like its traps.
+                    foreach (Position guard in room.SpotsOf(RoomTemplate.EnemySpot))
+                    {
+                        Add(ElementType.Enemy, guard, room);
+                    }
+
                     break;
 
                 case RoomType.Treasure:

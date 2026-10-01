@@ -81,7 +81,7 @@ jobs:
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
-            /d:sonar.exclusions="**/Migrations/**,**/Dungeon.Domain/Services/Generation/RoomTemplates.cs"
+            /d:sonar.exclusions="**/Migrations/**,**/Dungeon.Domain/Services/Generation/Templates/**"
           dotnet build Dungeon.Presentation.slnx --no-incremental
           # Sonar does not read Cobertura for C#; dotnet-coverage's xml format is the
           # vscoveragexml one it expects.

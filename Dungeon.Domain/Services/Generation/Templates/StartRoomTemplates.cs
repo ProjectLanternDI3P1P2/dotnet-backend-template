@@ -54,5 +54,30 @@ internal static class StartRoomTemplates
                 ".o.....o.",
             ]
         ),
+        // A small hall: the ladder comes down in the middle.
+        new(
+            "SmallHall",
+            [RoomType.Start],
+            ["o.......o", ".........", ".........", ".........", "o.......o"]
+        ),
+        // A round chamber, four columns around the ladder.
+        new(
+            "RotundaStart",
+            [RoomType.Start],
+            [
+                "    .....    ",
+                "  .........  ",
+                " ........... ",
+                "...I.....I...",
+                ".............",
+                ".............",
+                ".............",
+                "...I.....I...",
+                " ........... ",
+                "  .........  ",
+                "    .....    ",
+            ],
+            RoomRarity.Uncommon
+        ),
     ];
 }

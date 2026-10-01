@@ -55,5 +55,62 @@ internal static class EmptyRoomTemplates
                 ".I...I.....I...I.",
             ]
         ),
+        // A cistern: still water all around a dry cross.
+        new(
+            "Cistern",
+            [RoomType.Empty],
+            [
+                "...............",
+                "...............",
+                "..~~~~~.~~~~~..",
+                "..~~~~~.~~~~~..",
+                "..~~~~~.~~~~~..",
+                "...............",
+                "..~~~~~.~~~~~..",
+                "..~~~~~.~~~~~..",
+                "..~~~~~.~~~~~..",
+                "...............",
+                "...............",
+            ]
+        ),
+        // A small storeroom crowded with barrels.
+        new(
+            "Storecloset",
+            [RoomType.Empty],
+            ["oo...oo", "o.....o", ".......", "o.....o", "oo...oo"]
+        ),
+        // A round chamber over the sewers.
+        new(
+            "Rotunda",
+            [RoomType.Empty],
+            [
+                "      .      ",
+                "     ...     ",
+                "    .....    ",
+                "  .........  ",
+                " ........... ",
+                "....g...g....",
+                " ........... ",
+                "  .........  ",
+                "    .....    ",
+                "     ...     ",
+                "      .      ",
+            ]
+        ),
+        // An ossuary: tombs in rows.
+        new(
+            "Ossuary",
+            [RoomType.Empty],
+            [
+                "...........",
+                ".TT.....TT.",
+                "...........",
+                ".TTT...TTT.",
+                "...........",
+                ".TT.....TT.",
+                "...........",
+            ],
+            RoomRarity.Uncommon
+        ),
     ];
 }
