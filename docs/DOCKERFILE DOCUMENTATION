@@ -1,0 +1,1019 @@
+# Dungeon Dockerfile Procedure
+
+## Overview
+
+This document explains the Docker build and hardening procedure used for the `Dungeon` microservice.
+
+The objective is to provide a Docker image that is:
+
+- Secure
+- Optimized
+- Production-ready
+- Easy to maintain
+- Compatible with CI/CD pipelines
+- Efficient regarding Docker layer caching
+- Executed with a non-root user
+- Free from unnecessary SDK and source files at runtime
+
+The Dockerfile uses a multi-stage build strategy with dedicated stages for:
+
+1. Dependency restoration
+2. Application build
+3. Automated tests
+4. Application publishing
+5. Production runtime
+
+---
+
+# Project Structure
+
+The `Dungeon` solution contains the following projects:
+
+```text
+Dungeon.Presentation.slnx
+
+Dungeon.Contracts/
+├── Dungeon.Contracts.csproj
+
+Dungeon.Domain/
+├── Dungeon.Domain.csproj
+
+Dungeon.Application/
+├── Dungeon.Application.csproj
+
+Dungeon.Infrastructure/
+├── Dungeon.Infrastructure.csproj
+
+Dungeon.Presentation/
+├── Dungeon.Presentation.csproj
+
+Dungeon.Test/
+├── Dungeon.Test.csproj
+```
+
+The `Dungeon.Presentation` project is the ASP.NET Core entry point of the microservice.
+
+---
+
+# Dockerfile
+
+```dockerfile
+# syntax=docker/dockerfile:1.7
+
+ARG DOTNET_VERSION=10.0
+
+# ============================================================
+# 1. RESTORE
+# ============================================================
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+
+WORKDIR /src
+
+# Copy only project files first to maximize Docker cache usage.
+COPY Dungeon.Presentation.slnx ./
+
+COPY Dungeon.Contracts/Dungeon.Contracts.csproj \
+     Dungeon.Contracts/
+
+COPY Dungeon.Domain/Dungeon.Domain.csproj \
+     Dungeon.Domain/
+
+COPY Dungeon.Application/Dungeon.Application.csproj \
+     Dungeon.Application/
+
+COPY Dungeon.Infrastructure/Dungeon.Infrastructure.csproj \
+     Dungeon.Infrastructure/
+
+COPY Dungeon.Presentation/Dungeon.Presentation.csproj \
+     Dungeon.Presentation/
+
+COPY Dungeon.Test/Dungeon.Test.csproj \
+     Dungeon.Test/
+
+# Restore NuGet dependencies using the BuildKit cache.
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore Dungeon.Presentation.slnx
+
+
+# ============================================================
+# 2. BUILD
+# ============================================================
+FROM restore AS build
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet build Dungeon.Presentation.slnx \
+    --configuration Release \
+    --no-restore
+
+
+# ============================================================
+# 3. TEST
+# ============================================================
+FROM build AS test
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet test Dungeon.Test/Dungeon.Test.csproj \
+    --configuration Release \
+    --no-build \
+    --verbosity normal \
+    --logger "console;verbosity=normal"
+
+
+# ============================================================
+# 4. PUBLISH
+# ============================================================
+FROM build AS publish
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish Dungeon.Presentation/Dungeon.Presentation.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-build \
+    --no-restore \
+    /p:UseAppHost=false
+
+
+# ============================================================
+# 5. RUNTIME
+# ============================================================
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS runtime
+
+WORKDIR /app
+
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_EnableDiagnostics=0
+
+EXPOSE 8080
+
+COPY --from=publish --chown=$APP_UID:$APP_UID /app/publish ./
+
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
+```
+
+---
+
+# Dockerfile Architecture
+
+The Dockerfile is based on the following pipeline:
+
+```text
+RESTORE
+   |
+   v
+ BUILD
+   |
+   +--------> TEST
+   |
+   v
+ PUBLISH
+   |
+   v
+ RUNTIME
+```
+
+Each stage has a specific responsibility.
+
+This approach prevents unnecessary development tools and source files from being included in the final production image.
+
+---
+
+# 1. Restore Stage
+
+The restore stage uses the .NET SDK image:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+```
+
+The SDK image is required because restoring NuGet dependencies requires the .NET SDK.
+
+The working directory is configured with:
+
+```dockerfile
+WORKDIR /src
+```
+
+Only the solution and project files are copied first.
+
+Example:
+
+```dockerfile
+COPY Dungeon.Domain/Dungeon.Domain.csproj \
+     Dungeon.Domain/
+```
+
+This is important for Docker caching.
+
+If application source code changes but the `.csproj` files remain unchanged, Docker can reuse the existing NuGet restore layer.
+
+This avoids downloading all dependencies again during every build.
+
+---
+
+# NuGet Cache
+
+The restore command uses Docker BuildKit:
+
+```dockerfile
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore Dungeon.Presentation.slnx
+```
+
+The NuGet package directory is cached between builds.
+
+This improves build performance, especially in CI/CD environments.
+
+The cache directory is:
+
+```text
+/root/.nuget/packages
+```
+
+---
+
+# 2. Build Stage
+
+The build stage starts from the restored image:
+
+```dockerfile
+FROM restore AS build
+```
+
+The complete source code is then copied:
+
+```dockerfile
+COPY . .
+```
+
+The solution is compiled in Release mode:
+
+```dockerfile
+dotnet build Dungeon.Presentation.slnx \
+    --configuration Release \
+    --no-restore
+```
+
+The `--no-restore` option is used because dependencies were already restored during the previous stage.
+
+This prevents unnecessary operations and makes the build faster.
+
+---
+
+# 3. Test Stage
+
+The test stage executes the automated tests:
+
+```dockerfile
+FROM build AS test
+```
+
+The test project is executed with:
+
+```dockerfile
+dotnet test Dungeon.Test/Dungeon.Test.csproj \
+    --configuration Release \
+    --no-build \
+    --verbosity normal \
+    --logger "console;verbosity=normal"
+```
+
+The `--no-build` option prevents rebuilding the solution because it was already compiled during the build stage.
+
+This stage can be used independently in CI/CD.
+
+Example:
+
+```bash
+docker build --target test -t dungeon-test .
+```
+
+If a test fails, Docker returns a non-zero exit code.
+
+This allows a CI/CD pipeline to stop the deployment automatically.
+
+---
+
+# 4. Publish Stage
+
+The publish stage generates the final production application files.
+
+```dockerfile
+FROM build AS publish
+```
+
+The application is published using:
+
+```dockerfile
+dotnet publish Dungeon.Presentation/Dungeon.Presentation.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-build \
+    --no-restore \
+    /p:UseAppHost=false
+```
+
+The published application is stored in:
+
+```text
+/app/publish
+```
+
+The following option is used:
+
+```text
+/p:UseAppHost=false
+```
+
+This prevents .NET from generating an unnecessary platform-specific executable.
+
+The application will instead be launched using:
+
+```bash
+dotnet Dungeon.Presentation.dll
+```
+
+---
+
+# 5. Runtime Stage
+
+The final stage uses the ASP.NET Core runtime image:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS runtime
+```
+
+The .NET SDK is not included in the production image.
+
+This reduces:
+
+- Image size
+- Attack surface
+- Number of installed components
+- Potential vulnerabilities
+
+Only the ASP.NET Core runtime required to execute the application is present.
+
+---
+
+# Runtime Working Directory
+
+The application runs from:
+
+```dockerfile
+WORKDIR /app
+```
+
+Published files are copied from the publish stage:
+
+```dockerfile
+COPY --from=publish --chown=$APP_UID:$APP_UID /app/publish ./
+```
+
+Only production files are transferred to the final image.
+
+The following elements are therefore excluded:
+
+- Source code
+- Test projects
+- .NET SDK
+- Build tools
+- Intermediate build files
+
+---
+
+# Environment Variables
+
+The following production environment variables are configured:
+
+```dockerfile
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_EnableDiagnostics=0
+```
+
+## ASPNETCORE_ENVIRONMENT
+
+```text
+ASPNETCORE_ENVIRONMENT=Production
+```
+
+This configures ASP.NET Core to use the production environment.
+
+It may affect:
+
+- Logging
+- Error handling
+- Configuration loading
+- Middleware behavior
+
+---
+
+## ASPNETCORE_HTTP_PORTS
+
+```text
+ASPNETCORE_HTTP_PORTS=8080
+```
+
+The ASP.NET Core application listens on TCP port:
+
+```text
+8080
+```
+
+---
+
+## DOTNET_RUNNING_IN_CONTAINER
+
+```text
+DOTNET_RUNNING_IN_CONTAINER=true
+```
+
+This explicitly indicates that the application is running inside a container environment.
+
+---
+
+## DOTNET_EnableDiagnostics
+
+```text
+DOTNET_EnableDiagnostics=0
+```
+
+.NET diagnostic capabilities are disabled inside the production container.
+
+This reduces unnecessary runtime capabilities and slightly improves container hardening.
+
+Diagnostics should only be enabled when required for troubleshooting or observability tooling.
+
+---
+
+# Network Port
+
+The application exposes port:
+
+```dockerfile
+EXPOSE 8080
+```
+
+The container listens internally on:
+
+```text
+8080
+```
+
+Example local execution:
+
+```bash
+docker run --rm -p 8080:8080 dungeon-api
+```
+
+The application can then be accessed through:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# Non-Root Execution
+
+The container does not run as root.
+
+The final Dockerfile contains:
+
+```dockerfile
+USER $APP_UID
+```
+
+Modern ASP.NET Core container images include an unprivileged application user.
+
+Running the application as a non-root user limits the potential impact of a compromised application.
+
+The application files are also copied with the appropriate ownership:
+
+```dockerfile
+COPY --from=publish --chown=$APP_UID:$APP_UID /app/publish ./
+```
+
+This ensures that the runtime user owns the application files.
+
+---
+
+# Application Entry Point
+
+The microservice is started using:
+
+```dockerfile
+ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
+```
+
+The final command executed by the container is therefore:
+
+```bash
+dotnet Dungeon.Presentation.dll
+```
+
+---
+
+# Docker Ignore File
+
+A `.dockerignore` file must be placed next to the Dockerfile.
+
+Recommended configuration:
+
+```gitignore
+# Git
+.git
+.gitignore
+
+# IDE
+.vs
+.vscode
+.idea
+
+# .NET build files
+**/bin/
+**/obj/
+**/TestResults/
+
+# Visual Studio
+*.user
+*.suo
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+README*
+docs/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+*.pfx
+*.p12
+*.key
+*.pem
+secrets/
+```
+
+The `.dockerignore` file prevents unnecessary or sensitive files from being transferred into the Docker build context.
+
+This improves:
+
+- Security
+- Build speed
+- Cache efficiency
+- Image consistency
+
+---
+
+# Building the Test Stage
+
+To execute the tests through Docker:
+
+```bash
+docker build \
+    --target test \
+    -t dungeon-test .
+```
+
+The build fails if one or more automated tests fail.
+
+This command is especially useful inside a CI/CD pipeline.
+
+---
+
+# Building the Production Image
+
+To build the final production image:
+
+```bash
+docker build \
+    -t dungeon-api:latest .
+```
+
+Docker executes the required stages and produces the final runtime image.
+
+---
+
+# Running the Container
+
+Run the application locally:
+
+```bash
+docker run \
+    --rm \
+    --name dungeon-api \
+    -p 8080:8080 \
+    dungeon-api:latest
+```
+
+The API will then be available on:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# Running in Detached Mode
+
+To run the container in the background:
+
+```bash
+docker run \
+    -d \
+    --name dungeon-api \
+    -p 8080:8080 \
+    dungeon-api:latest
+```
+
+Check the running container:
+
+```bash
+docker ps
+```
+
+---
+
+# Checking Application Logs
+
+Container logs can be displayed with:
+
+```bash
+docker logs dungeon-api
+```
+
+Follow logs in real time:
+
+```bash
+docker logs -f dungeon-api
+```
+
+---
+
+# Stopping the Container
+
+Stop the container:
+
+```bash
+docker stop dungeon-api
+```
+
+Remove it if necessary:
+
+```bash
+docker rm dungeon-api
+```
+
+---
+
+# Inspecting the Image
+
+List Docker images:
+
+```bash
+docker images
+```
+
+Inspect the Dungeon image:
+
+```bash
+docker inspect dungeon-api:latest
+```
+
+Check the image history:
+
+```bash
+docker history dungeon-api:latest
+```
+
+This can help identify unexpectedly large Docker layers.
+
+---
+
+# Production Security Principles
+
+The Dockerfile applies several container security principles.
+
+## Multi-Stage Build
+
+Build dependencies and runtime dependencies are separated.
+
+The final image does not contain:
+
+- .NET SDK
+- Compiler
+- Source files
+- Test projects
+- Build artifacts not required at runtime
+
+---
+
+## Non-Root User
+
+The application executes using:
+
+```dockerfile
+USER $APP_UID
+```
+
+This prevents the application from running with root privileges.
+
+---
+
+## Reduced Runtime Surface
+
+Only the official ASP.NET Core runtime image is used in production.
+
+Development tools are not present in the final container.
+
+---
+
+## Disabled Diagnostics
+
+Production diagnostics are disabled:
+
+```text
+DOTNET_EnableDiagnostics=0
+```
+
+This removes unnecessary runtime capabilities.
+
+---
+
+## Secrets Are Not Embedded
+
+Secrets must never be added directly inside the Dockerfile.
+
+Do not use:
+
+```dockerfile
+ENV DATABASE_PASSWORD=my-password
+```
+
+or:
+
+```dockerfile
+ENV JWT_SECRET=my-secret
+```
+
+Secrets should instead be injected at runtime.
+
+Example:
+
+```bash
+docker run \
+    -e ConnectionStrings__Database="..." \
+    dungeon-api:latest
+```
+
+For production environments, secrets should preferably come from a dedicated secret management system.
+
+Examples include:
+
+- Docker Secrets
+- Kubernetes Secrets
+- Azure Key Vault
+- HashiCorp Vault
+- AWS Secrets Manager
+
+---
+
+# Optional Hardened Runtime
+
+For environments requiring additional container hardening, the standard ASP.NET Core runtime can be replaced by a chiseled image.
+
+Example:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
+```
+
+Chiseled images contain fewer operating system components and usually do not include tools such as:
+
+```text
+bash
+apt
+curl
+wget
+```
+
+This provides a smaller attack surface.
+
+The complete runtime stage could therefore be:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
+
+WORKDIR /app
+
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_EnableDiagnostics=0
+
+EXPOSE 8080
+
+COPY --from=publish /app/publish ./
+
+ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
+```
+
+The standard runtime image may still be preferable if the application requires additional Linux libraries or troubleshooting utilities.
+
+---
+
+# CI/CD Example
+
+A basic CI/CD Docker workflow can follow this sequence:
+
+```text
+Source Code
+    |
+    v
+Docker Test Stage
+    |
+    v
+Automated Tests
+    |
+    v
+Production Image Build
+    |
+    v
+Security Scan
+    |
+    v
+Container Registry
+    |
+    v
+Deployment
+```
+
+Example commands:
+
+```bash
+docker build --target test -t dungeon-test .
+```
+
+Then:
+
+```bash
+docker build -t dungeon-api:${VERSION} .
+```
+
+The resulting image can then be pushed to a container registry.
+
+Example:
+
+```bash
+docker tag \
+    dungeon-api:${VERSION} \
+    registry.example.com/dungeon-api:${VERSION}
+```
+
+```bash
+docker push \
+    registry.example.com/dungeon-api:${VERSION}
+```
+
+---
+
+# Recommended Production Improvements
+
+Additional security controls can be added around the Docker image.
+
+## Pin Docker Images
+
+For stronger supply-chain security, base images can be pinned using their SHA-256 digest.
+
+Conceptual example:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:<IMAGE_DIGEST>
+```
+
+This guarantees that the exact expected base image is used.
+
+The digest must be updated intentionally when upgrading the base image.
+
+---
+
+## Scan the Image
+
+The production image should be scanned for known vulnerabilities.
+
+Examples of tools that can be integrated into CI/CD include:
+
+```text
+Docker Scout
+Trivy
+Grype
+Snyk
+Microsoft Defender for Containers
+```
+
+---
+
+## Do Not Use `latest` in Production
+
+For development, this is acceptable:
+
+```text
+dungeon-api:latest
+```
+
+For production, immutable version tags should preferably be used.
+
+Example:
+
+```text
+dungeon-api:1.4.2
+```
+
+or:
+
+```text
+dungeon-api:git-a84f91c
+```
+
+This makes deployments easier to track and rollback.
+
+---
+
+# Final Docker Security Architecture
+
+The complete Docker lifecycle is:
+
+```text
+                    Dungeon source code
+                           |
+                           v
+                    +---------------+
+                    |    RESTORE    |
+                    | NuGet packages|
+                    +-------+-------+
+                            |
+                            v
+                    +---------------+
+                    |     BUILD     |
+                    | Release build |
+                    +-------+-------+
+                            |
+                  +---------+---------+
+                  |                   |
+                  v                   v
+          +---------------+   +---------------+
+          |     TEST      |   |    PUBLISH    |
+          | Unit / other  |   | Runtime files |
+          | tests         |   +-------+-------+
+          +---------------+           |
+                                      v
+                              +---------------+
+                              |    RUNTIME    |
+                              | ASP.NET Core  |
+                              | Non-root      |
+                              +-------+-------+
+                                      |
+                                      v
+                                Dungeon API
+                                  TCP 8080
+```
+
+---
+
+# Summary
+
+The hardened `Dungeon` Dockerfile provides:
+
+- Multi-stage Docker builds
+- Docker BuildKit NuGet caching
+- Isolated automated testing
+- Release builds
+- Optimized publishing
+- Minimal production runtime
+- Non-root execution
+- Explicit production configuration
+- Disabled .NET diagnostics
+- Reduced attack surface
+- No SDK in the production image
+- No source code in the production image
+- No test project in the production image
+- Better CI/CD compatibility
+- Better Docker layer caching
+- Optional chiseled runtime support
+
+This Dockerfile structure should be reused across the different .NET microservices to maintain a consistent container security baseline.
