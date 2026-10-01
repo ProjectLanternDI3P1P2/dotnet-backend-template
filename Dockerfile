@@ -1,30 +1,47 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# --- Stage 1: Build ---
+FROM dhi/dotnet:10.0-sdk AS build
 WORKDIR /src
 
-COPY Dungeon.Presentation.slnx ./
-COPY Dungeon.Contracts/Dungeon.Contracts.csproj Dungeon.Contracts/
-COPY Dungeon.Domain/Dungeon.Domain.csproj Dungeon.Domain/
-COPY Dungeon.Application/Dungeon.Application.csproj Dungeon.Application/
-COPY Dungeon.Infrastructure/Dungeon.Infrastructure.csproj Dungeon.Infrastructure/
-COPY Dungeon.Presentation/Dungeon.Presentation.csproj Dungeon.Presentation/
-COPY Dungeon.Test/Dungeon.Test.csproj Dungeon.Test/
+# Disable .NET telemetry during build
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-RUN dotnet restore Dungeon.Presentation.slnx
+COPY Leaderboard.Presentation.slnx ./
+COPY Leaderboard.Domain/Leaderboard.Domain.csproj Leaderboard.Domain/
+COPY Leaderboard.Application/Leaderboard.Application.csproj Leaderboard.Application/
+COPY Leaderboard.Infrastructure/Leaderboard.Infrastructure.csproj Leaderboard.Infrastructure/
+COPY Leaderboard.Presentation/Leaderboard.Presentation.csproj Leaderboard.Presentation/
+COPY Leaderboard.Test/Leaderboard.Test.csproj Leaderboard.Test/
+
+RUN dotnet restore Leaderboard.Presentation.slnx
 
 COPY . .
-RUN dotnet publish Dungeon.Presentation/Dungeon.Presentation.csproj \
+
+# Hardened build without debug symbols
+RUN dotnet publish Leaderboard.Presentation/Leaderboard.Presentation.csproj \
     --configuration Release \
     --output /app/publish \
-    --no-restore
+    --no-restore \
+    /p:UseAppHost=false \
+    /p:DebugType=None \
+    /p:DebugSymbols=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# --- Stage 2: Hardened Runtime ---
+# Use a "chiseled" (distroless) image to drastically reduce the attack surface
+FROM dhi/dotnet:10.0-aspnet-chiseled AS runtime
 WORKDIR /app
 
-EXPOSE 8080 8081
+# Harden .NET environment variables
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_EnableDiagnostics=0 \
+    ASPNETCORE_URLS=http://+:8080
 
-COPY --from=build /app/publish .
+# Single unprivileged port; HTTPS will be handled by the Kubernetes Ingress
+EXPOSE 8080
 
-# Unprivileged "app" user shipped by the aspnet image.
+# Explicitly grant ownership to the non-root user during copy
+COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
+
+# Execute as non-root user (built-in by default in chiseled images)
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
+ENTRYPOINT ["dotnet", "Leaderboard.Presentation.dll"]
