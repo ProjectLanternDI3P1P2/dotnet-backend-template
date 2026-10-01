@@ -1,47 +1,102 @@
-# --- Stage 1: Build ---
-FROM dhi/dotnet:10.0-sdk AS build
+# syntax=docker/dockerfile:1.7
+
+ARG DOTNET_VERSION=10.0
+
+# ============================================================
+# 1. RESTORE
+# ============================================================
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+
 WORKDIR /src
 
-# Disable .NET telemetry during build
-ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+# Copier uniquement les fichiers projet pour profiter
+# au maximum du cache Docker.
+COPY Dungeon.Presentation.slnx ./
 
-COPY Leaderboard.Presentation.slnx ./
-COPY Leaderboard.Domain/Leaderboard.Domain.csproj Leaderboard.Domain/
-COPY Leaderboard.Application/Leaderboard.Application.csproj Leaderboard.Application/
-COPY Leaderboard.Infrastructure/Leaderboard.Infrastructure.csproj Leaderboard.Infrastructure/
-COPY Leaderboard.Presentation/Leaderboard.Presentation.csproj Leaderboard.Presentation/
-COPY Leaderboard.Test/Leaderboard.Test.csproj Leaderboard.Test/
+COPY Dungeon.Contracts/Dungeon.Contracts.csproj \
+     Dungeon.Contracts/
 
-RUN dotnet restore Leaderboard.Presentation.slnx
+COPY Dungeon.Domain/Dungeon.Domain.csproj \
+     Dungeon.Domain/
+
+COPY Dungeon.Application/Dungeon.Application.csproj \
+     Dungeon.Application/
+
+COPY Dungeon.Infrastructure/Dungeon.Infrastructure.csproj \
+     Dungeon.Infrastructure/
+
+COPY Dungeon.Presentation/Dungeon.Presentation.csproj \
+     Dungeon.Presentation/
+
+COPY Dungeon.Test/Dungeon.Test.csproj \
+     Dungeon.Test/
+
+# Cache NuGet BuildKit
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore Dungeon.Presentation.slnx
+
+
+# ============================================================
+# 2. BUILD
+# ============================================================
+FROM restore AS build
 
 COPY . .
 
-# Hardened build without debug symbols
-RUN dotnet publish Leaderboard.Presentation/Leaderboard.Presentation.csproj \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet build Dungeon.Presentation.slnx \
+    --configuration Release \
+    --no-restore
+
+
+# ============================================================
+# 3. TEST
+# ============================================================
+FROM build AS test
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet test Dungeon.Test/Dungeon.Test.csproj \
+    --configuration Release \
+    --no-build \
+    --verbosity normal \
+    --logger "console;verbosity=normal"
+
+
+# ============================================================
+# 4. PUBLISH
+# ============================================================
+FROM build AS publish
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish Dungeon.Presentation/Dungeon.Presentation.csproj \
     --configuration Release \
     --output /app/publish \
+    --no-build \
     --no-restore \
-    /p:UseAppHost=false \
-    /p:DebugType=None \
-    /p:DebugSymbols=false
+    /p:UseAppHost=false
 
-# --- Stage 2: Hardened Runtime ---
-# Use a "chiseled" (distroless) image to drastically reduce the attack surface
-FROM dhi/dotnet:10.0-aspnet-chiseled AS runtime
+
+# ============================================================
+# 5. RUNTIME
+# ============================================================
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS runtime
+
 WORKDIR /app
 
-# Harden .NET environment variables
-ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    DOTNET_EnableDiagnostics=0 \
-    ASPNETCORE_URLS=http://+:8080
+# ============================================================
+# ASP.NET CORE
+# ============================================================
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_EnableDiagnostics=0
 
-# Single unprivileged port; HTTPS will be handled by the Kubernetes Ingress
 EXPOSE 8080
 
-# Explicitly grant ownership to the non-root user during copy
-COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
+# Copier uniquement les fichiers nécessaires au runtime
+COPY --from=publish --chown=$APP_UID:$APP_UID /app/publish ./
 
-# Execute as non-root user (built-in by default in chiseled images)
+# Exécution non-root
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "Leaderboard.Presentation.dll"]
+ENTRYPOINT ["dotnet", "Dungeon.Presentation.dll"]
