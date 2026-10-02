@@ -12,7 +12,11 @@ on:
   pull_request:
     branches: [dev, main]
   push:
-    branches: [main]
+    branches:
+      - main
+      # Enable if CI should also run on the merged dev commit. The CD image
+      # publication for dev is a manual workflow dispatch.
+      # - dev
   workflow_dispatch:
 
 # One run per branch. Superseded pull request runs are cancelled; runs on dev and
