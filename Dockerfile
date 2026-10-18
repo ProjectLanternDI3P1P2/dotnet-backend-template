@@ -1,5 +1,7 @@
+# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY NuGet.config ./
 
 COPY Player.Presentation.slnx ./
 COPY Player.Contracts/Player.Contracts.csproj Player.Contracts/
@@ -9,7 +11,8 @@ COPY Player.Infrastructure/Player.Infrastructure.csproj Player.Infrastructure/
 COPY Player.Presentation/Player.Presentation.csproj Player.Presentation/
 COPY Player.Test/Player.Test.csproj Player.Test/
 
-RUN dotnet restore Player.Presentation.slnx
+RUN --mount=type=secret,id=github_packages_credentials,env=NuGetPackageSourceCredentials_github \
+    dotnet restore Player.Presentation.slnx
 
 COPY . .
 RUN dotnet publish Player.Presentation/Player.Presentation.csproj \
