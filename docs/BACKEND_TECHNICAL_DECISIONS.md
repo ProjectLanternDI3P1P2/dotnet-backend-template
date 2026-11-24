@@ -126,7 +126,9 @@ field errors using an `errors` dictionary.
 
 # API versioning policy
 
-All HTTP APIs begin with `/api/v1/...`.
+New client-facing HTTP APIs routed by service prefix use
+`/api/<service>/v1/...`. Existing `/api/v1/<resource>` routes may remain until
+their gateway routes and clients are migrated. See ADR 0019.
 
 Backward-compatible changes remain in the current major version.
 A breaking contract change requires a new major version.
